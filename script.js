@@ -32,7 +32,7 @@ var programCode = function (processingInstance) {
             display() {
                 // ellipse(this.p.x, this.p.y, 10, 10)
 		textSize(this.v.x*4);
-		// text(`${this.v.x}, ${this.v.y}`, this.p.x, this.p.y);
+		text(`${this.v.x}, ${this.v.y}`, this.p.x, this.p.y);
                 // fill(0,myMap(this.v.x, 0, 1, 0, 255), 0)
                 // if (this.v.x >= 0 && this.v.x <= 7) {
                 //     fill(78, 0, 0)
@@ -44,7 +44,7 @@ var programCode = function (processingInstance) {
 		//change the color of the text based on the x value of the velocity vector
         noStroke()
         colorMode(RGB, 10)
-	fill(0, 0, Math.abs(this.v.x))
+	fill(this.v.x,0, this.v.x)
             }
             move() {
                 this.p.x += this.v.x
