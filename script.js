@@ -69,7 +69,7 @@ var programCode = function (processingInstance) {
             }
         }
         let particles = []
-        for (let k = 0; k < 50; k++) {
+        for (let k = 0; k < 200; k++) {
             vector = new Vector(Math.round(Math.random() * 1000)/100, 0)
             position = new Vector(10, Math.random() * window.innerHeight)
             particles.push(new Particle(position, vector))
