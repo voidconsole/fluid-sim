@@ -18,25 +18,7 @@ function triangulate(colliders) {
 	}
 }
 
-function particleGenerator(index){
-	let rnd = () => Math.random();
-	let w = window.innerWidth;
-	let h = window.innerHeight;
-	let size = 10;
-	let position = new Vector(rnd() * w, rnd() * h);
-	let velocity;
-	if(position.y < 450) {
-		velocity = new Vector(2,rnd());
-	}
-	else if (position.y > 450 && position.y < 500) {
-		// position = new Vector(position.x, position.y + 200);
-		velocity = new Vector(20, rnd());
-	}
-	else {
-		velocity = new Vector(2, rnd());
-	}
-	return [size, position, velocity];
-}
+thisWorld = HeatTransmissionWave; // change to EnergyLine for the hot line between cold gases
 class Vector {
 	constructor(x, y) {
 		this.x = x
@@ -50,6 +32,10 @@ class Vector {
 		this.x -= v.x
 		this.y -= v.y
 	}
+	scale(s) {
+		this.x *= s
+		this.y *= s
+	}
 }
 var programCode = function (processingInstance) {
 	with (processingInstance) {
@@ -57,10 +43,11 @@ var programCode = function (processingInstance) {
 		frameRate(30)
 
 		class Particle {
-			constructor(size, position, velocity) {
+			constructor(size, position, velocity, density = 0.01) {
 				this.size = size
 				this.position = position
 				this.velocity = velocity
+				this.mass = size * density
 			}
 			display() {
 				noStroke();
@@ -75,16 +62,42 @@ var programCode = function (processingInstance) {
 					this.size,
 					this.size
 				);
+
 			}
 			move() {
-				if (this.position.x > width || this.position.x < 0) {
-					this.position.x = 0;
-					// this.velocity.x = -this.velocity.x;
+				if (this.position.x > width) {
+					if (thisWorld.containX) {
+						this.velocity.x = -this.velocity.x;
+					}
+					else {
+						this.position.x = 0;
+					}
 				}
-				if (this.position.y > height || this.position.y < 0) {
-					// this.position.y = 0;	
-					this.velocity.y = -this.velocity.y;
+				else if (this.position.x < 0) {
+					if (thisWorld.containX) {
+						this.velocity.x = -this.velocity.x;
+					} else {
+						this.position.x = width;
+					}
 				}
+
+				if (this.position.y > height) {
+					if (thisWorld.containY) {
+						this.velocity.y = -this.velocity.y;
+					}
+					else {
+						this.position.y = 0;
+					}
+				}
+				else if (this.position.y < 0) {
+					if (thisWorld.containY) {
+						this.velocity.y = -this.velocity.y;
+					}
+					else {
+						this.position.y = height;
+					}
+				}
+
 				this.position.add(this.velocity);
 			}
 			collide(other) {
@@ -120,8 +133,8 @@ var programCode = function (processingInstance) {
 
 		let particles = [];
 
-		for (let k = 0; k < 500; k++) {
-			let [size, position, velocity] = particleGenerator(k);
+		for (let k = 0; k < thisWorld.particleCount; k++) {
+			let [size, position, velocity] = thisWorld.particleGenerator(k);
 			particles.push(new Particle(size, position, velocity));
 		}
 
