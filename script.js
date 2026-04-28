@@ -35,7 +35,7 @@ function particleGenerator(index){
 	else {
 		velocity = new Vector(2, rnd());
 	}
-	return new Particle(size, position, velocity);
+	return [size, position, velocity];
 }
 class Vector {
 	constructor(x, y) {
@@ -121,7 +121,8 @@ var programCode = function (processingInstance) {
 		let particles = [];
 
 		for (let k = 0; k < 500; k++) {
-			particles.push(particleGenerator(k));
+			let [size, position, velocity] = particleGenerator(k);
+			particles.push(new Particle(size, position, velocity));
 		}
 
 		draw = function () {
