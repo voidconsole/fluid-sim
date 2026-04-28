@@ -1,0 +1,310 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+:root {
+    --bg: #071018;
+    --panel-w: 360px;
+    --panel-bg: rgba(0, 0, 0, 0.04);
+    --panel-border: rgba(255, 255, 255, 0.06);
+    --text: #dfeaf2;
+    --muted: #98a7b1;
+    --accent: #ffffffcc;
+    --mono: "JetBrains Mono", monospace;
+    --sans: "Syne", sans-serif;
+}
+html,
+body {
+    height: 100%;
+}
+body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+}
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+#toggle-btn {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+}
+
+#panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--panel-w);
+    background: var(--panel-bg);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border-left: 1px solid var(--panel-border);
+    z-index: 150;
+    transform: translateX(100%);
+    transition: transform 0.28s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#panel.open {
+    transform: translateX(0);
+}
+.panel-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.panel-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--panel-border);
+    flex-shrink: 0;
+}
+.panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-family: var(--sans);
+}
+.controls-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-primary {
+    background: rgba(255, 255, 255, 0.03);
+}
+.panel-body {
+    padding: 12px;
+    overflow: auto;
+    flex: 1;
+}
+
+.repo-link {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+.repo-link a {
+    color: var(--muted);
+    text-decoration: underline;
+}
+.experiment-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.section-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 10px 0 6px;
+}
+.create-custom-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px dashed var(--panel-border);
+    background: transparent;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.gen-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.gen-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.gen-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: var(--panel-border);
+}
+.gen-item.active {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--panel-border);
+}
+.gen-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+}
+.gen-item.active .gen-dot {
+    background: var(--accent);
+}
+.gen-name {
+    flex: 1;
+    font-weight: 600;
+}
+.gen-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.editor-section {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+.editor-section.visible {
+    display: flex;
+}
+.code-editor {
+    width: 100%;
+    min-height: 220px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text);
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    resize: vertical;
+}
+.error-box {
+    display: none;
+    color: #ffb3b3;
+    font-size: 13px;
+    margin-top: 6px;
+}
+.error-box.visible {
+    display: block;
+}
+.success-flash {
+    display: none;
+    color: #b7f0c7;
+    font-size: 13px;
+    margin-top: 6px;
+}
+.divider {
+    height: 1px;
+    background: var(--panel-border);
+    margin: 12px 0;
+}
+#reset-btn {
+    display: none;
+}
+
+#toggle-btn svg {
+    transition: transform 0.18s ease;
+}
+#toggle-btn.active svg {
+    transform: rotate(180deg);
+}
+
+.speed-legend {
+    margin-top: 12px;
+}
+.speed-legend .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+#max-speed {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    appearance: none;
+}
+#max-speed::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(80, 80, 86, 0.9);
+    border: none;
+}
+#max-speed::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(80, 80, 86, 0.9);
+    border: none;
+}
+#max-speed:focus {
+    outline: none;
+}
+.speed-label {
+    font-size: 12px;
+    margin-right: 8px;
+    color: var(--muted);
+}
+.speed-value {
+    min-width: 36px;
+    text-align: right;
+    color: var(--muted);
+}
+
+/* Scrollbar styling: dark grey thumb, transparent track */
+/* WebKit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(80, 80, 86, 0.6);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(80, 80, 86, 0.85);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(80, 80, 86, 0.6) transparent;
+}

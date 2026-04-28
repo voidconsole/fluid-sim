@@ -1,20 +1,166 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Fluid Simulator</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  </head>
-  <body>
-	<!--This draws the canvas on the webpage -->
-    <canvas id="mycanvas"></canvas>
-  </body>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Fluid Simulator</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <canvas id="mycanvas"></canvas>
 
-  <!-- Include the processing.js library -->
-  <!-- See https://khanacademy.zendesk.com/hc/en-us/articles/202260404-What-parts-of-ProcessingJS-does-Khan-Academy-support- for differences -->
-  <script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script> 
-  <script src="particleGenerators.js"></script>
-  <script src="script.js">
+        <button id="toggle-btn" onclick="togglePanel()" title="Open Controls">
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path
+                    d="M15 6l-6 6 6 6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            </svg>
+        </button>
 
-  </script>
+        <div id="panel">
+            <div class="panel-inner">
+                <div class="panel-header">
+                    <div class="panel-title"><h1>Fluid Engine</h1></div>
+                    <div class="controls-row">
+                        <button
+                            class="btn"
+                            id="play-pause-btn"
+                            onclick="handlePlayPause()"
+                        >
+                            <span id="play-label">Pause</span>
+                        </button>
+                        <button
+                            class="btn"
+                            onclick="handleRestart()"
+                            title="Restart simulation"
+                        >
+                            Restart
+                        </button>
+                        <div class="collision-badge">
+                            <span class="collision-label">collisions</span>
+                            <span class="collision-value" id="collision-count"
+                                >0</span
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-body">
+                    <div class="repo-link">
+                        <a
+                            id="repo-link"
+                            href="https://github.com/voidconsole/fluid-sim"
+                            target="_blank"
+                            rel="noopener"
+                            >Read how it works on GitHub</a
+                        >
+                    </div>
+                    <div class="experiment-desc">
+                        An experiment created to explore the emergence of global
+                        fluid behaviour from local collision laws.
+                    </div>
+
+                    <button
+                        class="create-custom-btn"
+                        onclick="createCustomGenerator()"
+                    >
+                        <span class="plus-icon">＋</span>
+                        Create Custom Generator
+                    </button>
+
+                    <div class="section-label">Experiments</div>
+                    <div class="gen-list" id="gen-list"></div>
+
+                    <div class="divider"></div>
+
+                    <div class="editor-section" id="editor-section">
+                        <div class="editor-header">
+                            <span class="editor-title"
+                                >Editing
+                                <span id="editor-gen-name">—</span></span
+                            >
+                            <span
+                                class="editor-modified-badge"
+                                id="modified-badge"
+                            >
+                                - modified</span
+                            >
+                        </div>
+
+                        <textarea
+                            class="code-editor"
+                            id="code-editor"
+                            spellcheck="false"
+                            autocomplete="off"
+                            autocorrect="off"
+                            oninput="handleCodeChange()"
+                            aria-label="Code editor"
+                        ></textarea>
+
+                        <div class="editor-actions">
+                            <button
+                                class="btn btn-primary"
+                                onclick="saveAndPlay()"
+                            >
+                                Save &amp; Play
+                            </button>
+                            <button
+                                class="btn"
+                                onclick="resetEditorCode()"
+                                id="reset-btn"
+                            >
+                                Reset
+                            </button>
+                        </div>
+
+                        <div class="error-box" id="error-box"></div>
+                    </div>
+
+                    <div class="speed-legend">
+                        <div class="divider"></div>
+                        <div class="section-label">Speed</div>
+                        <div class="experiment-desc">
+                            Red is faster and blue is slower
+                        </div>
+                        <div class="speed-row">
+                            <label for="max-speed" class="speed-label"
+                                >Max speed</label
+                            >
+                            <input
+                                id="max-speed"
+                                type="range"
+                                min="1"
+                                max="60"
+                                step="1"
+                                value="15"
+                            />
+                            <span id="max-speed-value" class="speed-value"
+                                >15</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script>
+        <script src="particleGenerators.js"></script>
+        <script src="main.js"></script>
+        <script src="menu.js"></script>
+    </body>
 </html>
