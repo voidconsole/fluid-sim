@@ -1,98 +1,137 @@
 function myMap(value, fromLow, fromHigh, toLow, toHigh) {
-    return ((value - fromLow) * (toHigh - toLow)) / (fromHigh - fromLow) + toLow
+	return ((value - fromLow) * (toHigh - toLow)) / (fromHigh - fromLow) + toLow
 }
-function getDist(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+function getDist(a, b) {
+	return (((a.position.x - b.position.x) ** 2 + (a.position.y - b.position.y) ** 2) ** (1 / 2))
+}
+
+
+function triangulate(colliders) {
+	for (let i = 0; i < colliders.length; i++) {
+		colliders[i].display()
+		colliders[i].move()
+	}
+	for (let i = 0; i < colliders.length; i++) {
+		for (let j = i + 1; j < colliders.length; j++) {
+			colliders[i].collide(colliders[j])
+		}
+	}
+}
+
+function particleGenerator(index){
+	let rnd = () => Math.random();
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	let size = 10;
+	let position = new Vector(rnd() * w, rnd() * h);
+	let velocity;
+	if(position.y < 450) {
+		velocity = new Vector(2,rnd());
+	}
+	else if (position.y > 450 && position.y < 500) {
+		// position = new Vector(position.x, position.y + 200);
+		velocity = new Vector(20, rnd());
+	}
+	else {
+		velocity = new Vector(2, rnd());
+	}
+	return new Particle(size, position, velocity);
 }
 class Vector {
-    constructor(x, y) {
-        this.x = x
-        this.y = y
-    }
-    add(v) {
-        this.x += v.x
-        this.y += v.y
-    }
-    sub(v) {
-        this.x -= v.x
-        this.y -= v.y
-    }
+	constructor(x, y) {
+		this.x = x
+		this.y = y
+	}
+	add(v) {
+		this.x += v.x
+		this.y += v.y
+	}
+	sub(v) {
+		this.x -= v.x
+		this.y -= v.y
+	}
 }
 var programCode = function (processingInstance) {
-    with (processingInstance) {
-        size(window.innerWidth, window.innerHeight)
-        frameRate(30)
-        //
+	with (processingInstance) {
+		size(window.innerWidth, window.innerHeight)
+		frameRate(30)
 
-        class Particle {
-            constructor(p, v) {
-                this.p = p
-                this.v = v
-            }
-            display() {
-                // ellipse(this.p.x, this.p.y, 10, 10)
-		textSize(this.v.x*4);
-		text(`${this.v.x}, ${this.v.y}`, this.p.x, this.p.y);
-                // fill(0,myMap(this.v.x, 0, 1, 0, 255), 0)
-                // if (this.v.x >= 0 && this.v.x <= 7) {
-                //     fill(78, 0, 0)
-                // } else if (this.v.x > 7) {
-                //     fill(0, 0, 255)
-                // }else{
-		// 	fill(0, 255, 0)
-		// }
-		//change the color of the text based on the x value of the velocity vector
-        noStroke()
-        colorMode(RGB, 10)
-	fill(this.v.x,0, this.v.x)
-            }
-            move() {
-                this.p.x += this.v.x
-                this.p.y += this.v.y
-                if (this.p.x > width) {
-                    this.p.x = 0
-                }
-            }
-            checkCollision() {
-                for (let i = 0; i < particles.length; i++) {
-                    let other = particles[i]
-                    if (this !== other) {
-                        if (
-                            getDist(this.p.x, this.p.y, other.p.x, other.p.y) <
-                            10
-                        ) {
-                        //     this.v.add(other.v);
-                        //     other.v.add(this.v);
-                        }
-                    }
-                }
-            }
-        }
-        let particles = []
-        for (let k = 0; k < 50; k++) {
-            vector = new Vector(Math.round(Math.random() * 1000)/100, 0)
-            position = new Vector(10, Math.random() * window.innerHeight)
-            particles.push(new Particle(position, vector))
-        }
+		class Particle {
+			constructor(size, position, velocity) {
+				this.size = size
+				this.position = position
+				this.velocity = velocity
+			}
+			display() {
+				noStroke();
+				colorMode(RGB, 255);
+				let speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+				let red = myMap(speed, 0, 10, 0, 255); // later change to speedRed = myMap(this.velocity.x, 0, 10, 0, 255)
+				let blue = myMap(speed, 0, 10, 255, 0); // later change to speedBlue = myMap(this.velocity.x, 0, 10, 0, 255)
+				fill(red, 0, blue);
+				ellipse(
+					this.position.x,
+					this.position.y,
+					this.size,
+					this.size
+				);
+			}
+			move() {
+				if (this.position.x > width || this.position.x < 0) {
+					this.position.x = 0;
+					// this.velocity.x = -this.velocity.x;
+				}
+				if (this.position.y > height || this.position.y < 0) {
+					// this.position.y = 0;	
+					this.velocity.y = -this.velocity.y;
+				}
+				this.position.add(this.velocity);
+			}
+			collide(other) {
+				if (getDist(this, other) <= this.size / 2 + other.size / 2) {
+					var normal = new Vector(
+						(other.position.x - this.position.x) /
+						Math.hypot(
+							other.position.x - this.position.x,
+							other.position.y - this.position.y
+						),
+						(other.position.y - this.position.y) /
+						Math.hypot(
+							other.position.x - this.position.x,
+							other.position.y - this.position.y
+						)
+					)
 
-        draw = function () {
-            background(0, 0, 0)
-            for (let myP = 0; myP < particles.length; myP++) {
-                const myParticle = particles[myP]
-                myParticle.display()
-                myParticle.move()
-                myParticle.checkCollision()
-            }
 
-            // x = Math.random()*1000
-            // y = Math.random()*1000
-        }
+					var overlap = (getDist(this, other) - (this.size / 2 + other.size / 2)) / 2
+					var backoff = new Vector(normal.x * overlap, normal.y * overlap)
+					this.position.add(backoff)
+					other.position.sub(backoff)
 
-        //
-    }
+					var relative = new Vector(this.velocity.x - other.velocity.x, this.velocity.y - other.velocity.y)
+					var influence = relative.x * normal.x + relative.y * normal.y
+					var delta = new Vector(influence * normal.x, influence * normal.y);
+					this.velocity.sub(delta);
+					other.velocity.add(delta);
+					console.log("Collide");
+				}
+			}
+		}
+
+		let particles = [];
+
+		for (let k = 0; k < 500; k++) {
+			particles.push(particleGenerator(k));
+		}
+
+		draw = function () {
+			background(0, 0, 0);
+			triangulate(particles);
+		}
+
+
+	}
 }
 
-// Get the canvas that ProcessingJS will use
 var canvas = document.getElementById("mycanvas")
-// Pass the function to ProcessingJS constructor
 var processingInstance = new Processing(canvas, programCode)
