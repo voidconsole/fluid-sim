@@ -134,6 +134,7 @@ The canvas fills the viewport. The control panel slides in from the left. A max-
 
 **The collision model is perfectly elastic.** Kinetic energy is conserved in every collision. Real fluids lose energy to heat through viscous dissipation; this system does not. The emergent behaviors are therefore closest to an ideal gas or superfluid, not a viscous liquid.
 **p5.js** is used as the canvas rendering layer. The simulation logic is entirely plain JavaScript and has no dependency on p5 beyond the draw loop and canvas primitives.
+
 ---
 ## Future Updates
 - To improve efficiency by checking collisions with only particles in a local group
