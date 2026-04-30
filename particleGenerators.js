@@ -121,7 +121,7 @@ function wallCrashGen(index) {
 	let size = 20;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
-	if (index > 50) {
+	if (index > 150) {
 		position = new Vector(1100, h / 2 + rnd() * 100);
 		velocity = new Vector(-2, 0);
 	} else {
@@ -130,7 +130,7 @@ function wallCrashGen(index) {
 	}
 	return [size, position, velocity];
 }
-var wallCrash = new World(100, wallCrashGen, true, true);
+var wallCrash = new World(400, wallCrashGen, true, true);	
 
 // Chain of balls
 function ballChainGen(index) {
