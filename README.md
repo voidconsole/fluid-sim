@@ -7,6 +7,7 @@ Most fluid simulations rely on the Navier-Stokes equations, complex partial diff
 The result is a successful proof-of-concept: phenomena such as vorticity, pressure gradients, and thermal diffusion emerge naturally from the bottom-up.
 [Check it out!](https://voidconsole.github.io/fluid-sim/)
 
+<img width="1858" height="913" alt="image" src="https://github.com/user-attachments/assets/21592fa8-f103-4172-8dfb-8c5c8ffe1751" />
 
 
 ## The Research Hypothesis
@@ -20,8 +21,6 @@ None of these properties were programmed. There is no pressure variable, no temp
 
 This project utilizes and extends my custom collision engine found at [voidconsole/collision](https://github.com/voidconsole/collision).
 
-
-Here's the cleaned-up section:
 
 ---
 
@@ -58,7 +57,7 @@ A more Newtonian experiment, an extended Newton's cradle. Two chains of balls co
 
 * **Custom World Engine:** A `World` class that manages particle counts, boundary constraints (Contain X/Y), and custom frame rates.
 * **Live Code Editor:** The UI includes a built-in sandbox where you can rewrite the generator logic in real-time and re-inject it into the running simulation using `eval()` safely within the scope.
-* **Zero Dependencies:** Built using raw JavaScript and the Processing.js library for canvas rendering.
+* **Zero Dependencies:** Built using raw JavaScript and the p5.js library for canvas rendering.
 
 
 ## Architecture
@@ -81,7 +80,7 @@ Boundary conditions are a property of the World, not the particle. `containX` an
 
 ### `main.js` - The Simulation Core
 
-This is the engine. It runs inside Processing.js and owns three responsibilities: rendering particles, moving them, and resolving collisions.
+This is the engine. It runs inside p5.js and owns three responsibilities: rendering particles, moving them, and resolving collisions.
 
 **The Particle class** handles its own display and movement. Color is computed live each frame from the particle's current speed, mapped against a configurable `maxParticleSpeed` ceiling:
 
@@ -134,15 +133,14 @@ The canvas fills the viewport. The control panel slides in from the left. A max-
 **No spatial partitioning** is used. A quadtree or spatial hash would reduce complexity to roughly O(n log n) and is a natural next step for anyone extending this.
 
 **The collision model is perfectly elastic.** Kinetic energy is conserved in every collision. Real fluids lose energy to heat through viscous dissipation; this system does not. The emergent behaviors are therefore closest to an ideal gas or superfluid, not a viscous liquid.
-**Processing.js** is used as the canvas rendering layer. The simulation logic is entirely plain JavaScript and has no dependency on Processing beyond the draw loop and canvas primitives.
+**p5.js** is used as the canvas rendering layer. The simulation logic is entirely plain JavaScript and has no dependency on p5 beyond the draw loop and canvas primitives.
 
+---
 ## Future Updates
 - To improve efficiency by checking collisions with only particles in a local group
 - To account for custom shapes and masses
 - To extend as a fluid simulator for fluid dynamic analysis
 
-
----
 
 ## Conclusion
 The experiment is considered **successful**. The simulation demonstrates that while Navier-Stokes provides a top-down mathematical shortcut for fluid flow, the behavior itself is a fundamental result of billions of local interactions. Even with a few hundred particles, we see the "soul" of a fluid without writing a single line of traditional fluid physics. 
