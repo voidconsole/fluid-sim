@@ -4,25 +4,27 @@ const GENERATOR_CODES = {
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 20;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (index > 150) {
-        position = new Vector(1100, h / 2 + rnd()*100);
+        position = new Vector(1100, h / 2 + rnd() * 100);
         velocity = new Vector(-2, 0);
     } else {
         position = new Vector(100, 100 + rnd() * 100);
         velocity = new Vector(15, 0);
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var wallCrash = new World(400, wallCrashGen, true, true);`,
 
-	'fluidCrash': `let partCount = 700
+	'fluidCrash': `let partCount = 700;
 function fastFluidCrash(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 15;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (index < partCount - 50) {
@@ -33,19 +35,20 @@ function fastFluidCrash(index) {
             velocity = new Vector(rnd(), rnd());
         }
     } else {
-        position = new Vector(index/partCount, index/partCount + 400);
+        position = new Vector(index / partCount, index / partCount + 400);
         velocity = new Vector(15, rnd());
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var fluidCrash = new World(partCount, fastFluidCrash, true, true);`,
 
-	'fluidCrashHD': `let partCount2 = 7000
+	'fluidCrashHD': `let partCount2 = 7000;
 function fastFluidCrashHD(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 5;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (index < partCount2 - 100) {
@@ -56,10 +59,10 @@ function fastFluidCrashHD(index) {
             velocity = new Vector(rnd(), rnd());
         }
     } else {
-        position = new Vector(index/partCount2, index/partCount2 + 400);
+        position = new Vector(index / partCount2, index / partCount2 + 400);
         velocity = new Vector(15, rnd());
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);`,
 
@@ -68,16 +71,17 @@ var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);`,
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 20;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (index < 300) {
-        position = new Vector(400, h/2 + rnd() * 100);
+        position = new Vector(400, h / 2 + rnd() * 100);
         velocity = new Vector(rnd(), 0);
     } else {
-        position = new Vector(400, h/2 + rnd() * 100);
+        position = new Vector(400, h / 2 + rnd() * 100);
         velocity = new Vector(15, 0);
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var explode = new World(500, explodeGen, true, true);`,
 
@@ -86,6 +90,7 @@ var explode = new World(500, explodeGen, true, true);`,
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 50;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (position.x > 500) {
@@ -94,7 +99,7 @@ var explode = new World(500, explodeGen, true, true);`,
         position = new Vector(position.x + 400, position.y);
         velocity = new Vector(rnd() * 10, rnd());
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var HeatTransmissionWave = new World(600, heatWaveGen, true, true);`,
 
@@ -103,6 +108,7 @@ var HeatTransmissionWave = new World(600, heatWaveGen, true, true);`,
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 20;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (position.y < 450) {
@@ -112,7 +118,7 @@ var HeatTransmissionWave = new World(600, heatWaveGen, true, true);`,
     } else {
         velocity = new Vector(2, rnd());
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var EnergyLine = new World(500, hotLineGenerator, false, true);`,
 
@@ -121,6 +127,7 @@ var EnergyLine = new World(500, hotLineGenerator, false, true);`,
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 20;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (position.y < 300) {
@@ -131,7 +138,7 @@ var EnergyLine = new World(500, hotLineGenerator, false, true);`,
     } else {
         velocity = new Vector(2, rnd());
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var blowOver = new World(700, highSpeedLineGen, false, true);`,
 
@@ -140,16 +147,17 @@ var blowOver = new World(700, highSpeedLineGen, false, true);`,
     let w = window.innerWidth;
     let h = window.innerHeight;
     let size = 20;
+    let mass = 1;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity;
     if (position.x > 500) {
-        position = new Vector(1100, h/2 + index);
+        position = new Vector(1100, h / 2 + index);
         velocity = new Vector(-2, 0);
     } else {
         position = new Vector(200, index);
         velocity = new Vector(15, 0);
     }
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var ballChain = new World(50, ballChainGen, true, true);`,
 };
@@ -162,10 +170,11 @@ function myGenerator(ParticleIndex) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
-    let size = 20;
+    let size = rnd() * 30 + 10;
+    let mass = size / 10;
     let position = new Vector(rnd() * w, rnd() * h);
     let velocity = new Vector(rnd() * 10, rnd() * 10);
-    return [size, position, velocity];
+    return [size, position, velocity, mass];
 }
 var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, CustomFrameRate);`;
 

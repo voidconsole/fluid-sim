@@ -14,6 +14,7 @@ function heatWaveGen(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 50;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (position.x > 500) {
@@ -22,7 +23,8 @@ function heatWaveGen(index) {
 		position = new Vector(position.x + 400, position.y);
 		velocity = new Vector(rnd() * 10, rnd());
 	}
-	return [size, position, velocity];
+
+	return [size, position, velocity, mass];
 }
 var HeatTransmissionWave = new World(600, heatWaveGen, true, true);
 
@@ -32,6 +34,7 @@ function hotLineGenerator(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 20;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (position.y < 450) {
@@ -41,7 +44,8 @@ function hotLineGenerator(index) {
 	} else {
 		velocity = new Vector(2, rnd());
 	}
-	return [size, position, velocity];
+
+	return [size, position, velocity, mass];
 }
 var EnergyLine = new World(500, hotLineGenerator, false, true);
 
@@ -51,6 +55,7 @@ function highSpeedLineGen(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 20;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (position.y < 300) {
@@ -61,7 +66,8 @@ function highSpeedLineGen(index) {
 	} else {
 		velocity = new Vector(2, rnd());
 	}
-	return [size, position, velocity];
+
+	return [size, position, velocity, mass];
 }
 var blowOver = new World(700, highSpeedLineGen, false, true);
 
@@ -72,6 +78,7 @@ function fastFluidCrash(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 15;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (index < partCount - 50) {
@@ -85,7 +92,7 @@ function fastFluidCrash(index) {
 		position = new Vector(index / partCount, index / partCount + 400);
 		velocity = new Vector(15, rnd());
 	}
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var fluidCrash = new World(partCount, fastFluidCrash, true, true);
 
@@ -96,6 +103,7 @@ function fastFluidCrashHD(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 5;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (index < partCount2 - 100) {
@@ -109,7 +117,7 @@ function fastFluidCrashHD(index) {
 		position = new Vector(index / partCount2, index / partCount2 + 400);
 		velocity = new Vector(15, rnd());
 	}
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);
 
@@ -119,6 +127,7 @@ function wallCrashGen(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 20;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (index > 150) {
@@ -128,7 +137,7 @@ function wallCrashGen(index) {
 		position = new Vector(100, 100 + rnd() * 100);
 		velocity = new Vector(15, 0);
 	}
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var wallCrash = new World(400, wallCrashGen, true, true);	
 
@@ -138,6 +147,7 @@ function ballChainGen(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 20;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (position.x > 500) {
@@ -147,7 +157,7 @@ function ballChainGen(index) {
 		position = new Vector(200, index);
 		velocity = new Vector(15, 0);
 	}
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var ballChain = new World(50, ballChainGen, true, true);
 
@@ -157,6 +167,7 @@ function explodeGen(index) {
 	let w = window.innerWidth;
 	let h = window.innerHeight;
 	let size = 20;
+	let mass = 1;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity;
 	if (index < 300) {
@@ -166,9 +177,11 @@ function explodeGen(index) {
 		position = new Vector(400, h / 2 + rnd() * 100);
 		velocity = new Vector(15, 0);
 	}
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var explode = new World(500, explodeGen, true, true);
+
+
 
 // Custom Generator template
 let ParticleCount = 400;
@@ -179,9 +192,10 @@ function myGenerator(ParticleIndex) {
 	let rnd = () => Math.random();
 	let w = window.innerWidth;
 	let h = window.innerHeight;
-	let size = 20;
+	let size = rnd() * 30 + 10;
+	let mass = size / 10;
 	let position = new Vector(rnd() * w, rnd() * h);
 	let velocity = new Vector(rnd() * 10, rnd() * 10);
-	return [size, position, velocity];
+	return [size, position, velocity, mass];
 }
 var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, CustomFrameRate);

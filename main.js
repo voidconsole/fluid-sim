@@ -1,4 +1,4 @@
-// Classes
+
 class Vector {
 	constructor(x, y) {
 		this.x = x
@@ -12,18 +12,23 @@ class Vector {
 		this.x -= v.x
 		this.y -= v.y
 	}
-	scale(s) {
+	mult(s) {
 		this.x *= s
 		this.y *= s
+	}
+	scale(s) {
+		return new Vector(this.x * s, this.y * s)
 	}
 }
 
 class Particle {
-	constructor(size, position, velocity, density = 0.01) {
+	constructor(size, position, velocity, mass = 1, rigidity = false) {
 		this.size = size
 		this.position = position
+		this.mass = mass
 		this.velocity = velocity
-		this.mass = size * density
+		this.rigid = rigidity
+		
 	}
 	display() {
 		noStroke()
@@ -33,25 +38,26 @@ class Particle {
 				? maxParticleSpeed
 				: 15
 		const s = Math.min(speed, maxSpeed)
-		let red = myMap(s, 0, maxSpeed, 0, 255)
-		let blue = myMap(s, 0, maxSpeed, 255, 0)
+		let red = lerpBetween(s, 0, maxSpeed, 0, 255)
+		let blue = lerpBetween(s, 0, maxSpeed, 255, 0)
 		red = Math.max(0, Math.min(255, red))
 		blue = Math.max(0, Math.min(255, blue))
 		fill(red, 0, blue)
 		ellipse(this.position.x, this.position.y, this.size, this.size)
+		if (this.rigid) { this.mass = Infinity; }
 	}
 	move() {
-		if (this.position.x > width) {
+		if (this.position.x >= width) {
 			if (thisWorld.containX) this.velocity.x = -this.velocity.x
 			else this.position.x = 0
-		} else if (this.position.x < 0) {
+		} else if (this.position.x <= 0) {
 			if (thisWorld.containX) this.velocity.x = -this.velocity.x
 			else this.position.x = width
 		}
-		if (this.position.y > height) {
+		if (this.position.y >= height) {
 			if (thisWorld.containY) this.velocity.y = -this.velocity.y
 			else this.position.y = 0
-		} else if (this.position.y < 0) {
+		} else if (this.position.y <= 0) {
 			if (thisWorld.containY) this.velocity.y = -this.velocity.y
 			else this.position.y = height
 		}
@@ -69,7 +75,7 @@ class Particle {
 				(other.position.y - this.position.y) / hyp,
 			)
 			let overlap =
-				(particleDist - (this.size / 2 + other.size / 2)) / 2
+				(particleDist - (this.size / 2 + other.size / 2)) / 2 + 0.01
 			let backoff = new Vector(normal.x * overlap, normal.y * overlap)
 			this.position.add(backoff)
 			other.position.sub(backoff)
@@ -77,23 +83,42 @@ class Particle {
 				this.velocity.x - other.velocity.x,
 				this.velocity.y - other.velocity.y,
 			)
-			let influence = relative.x * normal.x + relative.y * normal.y
-			let delta = new Vector(influence * normal.x, influence * normal.y)
-			this.velocity.sub(delta)
-			other.velocity.add(delta)
+			let projection = relative.x * normal.x + relative.y * normal.y
+			let delta = new Vector(projection * normal.x, projection * normal.y)
+			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
+			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
+			this.velocity.sub(delta.scale(harmonic / this.mass))
+			other.velocity.add(delta.scale(harmonic / other.mass))
+
 			collisions += 1
 		}
 	}
 }
 
-// Global vars
+
 let thisWorld = null
 let collisions = 0
 let isPaused = false
 let particles = []
 
-// Functions
-function myMap(value, fromLow, fromHigh, toLow, toHigh) {
+function totalEnergy() {
+	energy = 0
+	for (let p of particles) {
+		energy += 0.5 * p.mass * (p.velocity.x ** 2 + p.velocity.y ** 2)
+	}
+	return energy
+}
+function totalMomentum() {
+	momentumX = 0
+	momentumY = 0
+	for (let p of particles) {
+		momentumX += p.velocity.x * p.mass
+		momentumY += p.velocity.y * p.mass
+	}
+	return [momentumX, momentumY]
+}
+
+function lerpBetween(value, fromLow, fromHigh, toLow, toHigh) {
 	return ((value - fromLow) * (toHigh - toLow)) / (fromHigh - fromLow) + toLow
 }
 function getDist(a, b) {
@@ -114,8 +139,8 @@ function triangulate(colliders) {
 function initParticles() {
 	particles = []
 	for (let k = 0; k < thisWorld.particleCount; k++) {
-		let [size, position, velocity] = thisWorld.particleGenerator(k)
-		particles.push(new Particle(size, position, velocity))
+		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
+		particles.push(new Particle(size, position, velocity, mass, false))
 	}
 }
 
@@ -133,6 +158,7 @@ function draw() {
 }
 
 function startSimulation(world) {
+	console.log("Warning: Momentum will not be conserved if walls are enabled")
 	thisWorld = world
 	collisions = 0
 	isPaused = false
@@ -146,6 +172,7 @@ function handlePlayPause() {
 	if (isPaused) window.noLoop();
 	else window.loop();
 	updatePlayPauseBtn()
+	console.log("Momentum:" + totalMomentum() + " Energy:", totalEnergy())
 }
 
 function handleRestart() {
@@ -163,7 +190,12 @@ function windowResized() {
 	resizeCanvas(window.innerWidth, window.innerHeight)
 }
 
-// Collision counter
+function svgHandler(svgObject) {
+	let path = svg.Object(svgObject).select('path')
+}
+
+
+
 let prevCollisions = 0
 setInterval(() => {
 	const el = document.getElementById("collision-count")
