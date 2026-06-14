@@ -1,5 +1,6 @@
 const GENERATOR_CODES = {
-	'wallCrash': `function wallCrashGen(index) {
+	'wallCrash': `// Crash of two concentrated walls
+function wallCrashGen(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -18,7 +19,8 @@ const GENERATOR_CODES = {
 }
 var wallCrash = new World(400, wallCrashGen, true, true);`,
 
-	'fluidCrash': `let partCount = 700;
+	'fluidCrash': `// Fast fluid crashing into slow fluid
+let partCount = 700;
 function fastFluidCrash(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
@@ -42,7 +44,8 @@ function fastFluidCrash(index) {
 }
 var fluidCrash = new World(partCount, fastFluidCrash, true, true);`,
 
-	'fluidCrashHD': `let partCount2 = 7000;
+	'fluidCrashHD': `// High resolution collision
+let partCount2 = 7000;
 function fastFluidCrashHD(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
@@ -66,7 +69,8 @@ function fastFluidCrashHD(index) {
 }
 var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);`,
 
-	'explode': `function explodeGen(index) {
+	'explode': `// Concentrated explosion in the middle of the screen
+function explodeGen(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -85,7 +89,8 @@ var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);`,
 }
 var explode = new World(500, explodeGen, true, true);`,
 
-	'HeatTransmissionWave': `function heatWaveGen(index) {
+	'HeatTransmissionWave': `// Heat transmission wave
+function heatWaveGen(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -103,7 +108,8 @@ var explode = new World(500, explodeGen, true, true);`,
 }
 var HeatTransmissionWave = new World(600, heatWaveGen, true, true);`,
 
-	'EnergyLine': `function hotLineGenerator(index) {
+	'EnergyLine': `// Hot line between cold gases
+function hotLineGenerator(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -122,7 +128,8 @@ var HeatTransmissionWave = new World(600, heatWaveGen, true, true);`,
 }
 var EnergyLine = new World(500, hotLineGenerator, false, true);`,
 
-	'blowOver': `function highSpeedLineGen(index) {
+	'blowOver': `// High speed line above cold gas
+function highSpeedLineGen(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -135,14 +142,15 @@ var EnergyLine = new World(500, hotLineGenerator, false, true);`,
     } else if (position.y > 300 && position.y < 400) {
         position = new Vector(position.x, position.y + 200);
         velocity = new Vector(2, rnd());
-    } else {
+    } else { 
         velocity = new Vector(2, rnd());
     }
     return [size, position, velocity, mass];
 }
 var blowOver = new World(700, highSpeedLineGen, false, true);`,
 
-	'ballChain': `function ballChainGen(index) {
+	'ballChain': `// Chain of balls
+function ballChainGen(index) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -160,31 +168,44 @@ var blowOver = new World(700, highSpeedLineGen, false, true);`,
     return [size, position, velocity, mass];
 }
 var ballChain = new World(50, ballChainGen, true, true);`,
-	'swarmWalk': `
-// Random walk caused by a swarm of massive particles
-function swarmGen(index) {
-	let rnd = () => Math.random();
-	let w = window.innerWidth;
-	let h = window.innerHeight;
-	if (index === 0) {
-		let size = 60;
-		let mass = 2;
-		let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
-		let velocity = new Vector(rnd(), rnd());
-		return [size, position, velocity, mass];
-	} else {
-		let size = 4 + rnd() * 6;
-		let mass = size / 5;
-		let position = new Vector(rnd() * w, rnd() * h);
-		let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
-		return [size, position, velocity, mass];
-	}
+
+	'swarmWalk': `// Random walk caused by a swarm of massive particles
+    function swarmGen(index) {
+        let rnd = () => Math.random();
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        if (index === 0) {
+            let size = 60;
+            let mass = 50;
+            let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
+            let velocity = new Vector(rnd(), rnd());
+            return [size, position, velocity, mass];
+        } else {
+            let size = 4 + rnd() * 6;
+            let mass = size / 15;
+            let position = new Vector(rnd() * w, rnd() * h);
+            let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
+            return [size, position, velocity, mass];
+        }
+    }
+    var swarmWalk = new World(1000, swarmGen, true, true);`,
+
+	'lattice': `// Particles fill form lattice domains like a solid crystal
+function latticeGen(index) {
+    let rnd = () => Math.random();
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    let size = 60;
+    let mass = 2;
+    let position = index > 500 ? new Vector(w / 2 - 100, h / 2) : new Vector(w / 2 + 100, h / 2);
+    let velocity = new Vector(rnd(), rnd());
+    return [size, position, velocity, mass];
 }
-var swarmWalk = new World(600, swarmGen, true, true);
-`,
+var lattice = new World(1000, latticeGen, true, true);`,
 };
 
-const CUSTOM_TEMPLATE = `let ParticleCount = 400
+const CUSTOM_TEMPLATE = `// Custom Generator template
+let ParticleCount = 400
 let ContainX = true
 let ContainY = true
 let CustomFrameRate = 30
@@ -206,10 +227,11 @@ const GENERATOR_LIST = [
 	{ id: 'EnergyLine', name: 'Energy Line', particles: '500' },
 	{ id: 'fluidCrash', name: 'Fluid Crash', particles: '700' },
 	{ id: 'fluidCrashHD', name: 'Fluid Crash HD', particles: '7000' },
+	{ id: 'lattice', name: 'Crystal Lattice', particles: '1000' },
+	{ id: 'swarmWalk', name: 'Swarm Walk', particles: '1000' },
 	{ id: 'wallCrash', name: 'Wall Crash', particles: '100' },
 	{ id: 'blowOver', name: 'Blowover', particles: '700' },
 	{ id: 'ballChain', name: 'Ball Chain', particles: '50' },
-	{ id: 'swarmWalk', name: 'Swarm Walk', particles: '600' },
 ];
 
 let panelOpen = false;
@@ -246,7 +268,7 @@ function selectGenerator(id) {
 
 	const worldMap = {
 		wallCrash, fluidCrash, fluidCrashHD, explode,
-		HeatTransmissionWave, EnergyLine, blowOver, ballChain, swarmWalk
+		HeatTransmissionWave, swarmWalk, lattice, EnergyLine, blowOver, ballChain,
 	};
 	const world = worldMap[id];
 	if (world) startSimulation(world);
@@ -357,7 +379,7 @@ window.addEventListener('DOMContentLoaded', () => {
 	if (typeof window.maxParticleSpeed === 'undefined') window.maxParticleSpeed = 15;
 
 	renderGenList();
-	const starter = ['explode', 'HeatTransmissionWave', 'EnergyLine', 'blowOver', 'fluidCrash', 'wallCrash', 'swarmWalk'];
+	const starter = ['explode', 'HeatTransmissionWave', 'EnergyLine', 'blowOver', 'fluidCrash', 'wallCrash', 'swarmWalk', 'lattice'];
 	const pick = starter[Math.floor(Math.random() * starter.length)];
 	selectGenerator(pick);
 	openEditor(GENERATOR_LIST.find(g => g.id === selectedGenId)?.name || 'Generator', GENERATOR_CODES[selectedGenId] || '', false);

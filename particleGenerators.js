@@ -203,6 +203,39 @@ function swarmGen(index) {
 }
 var swarmWalk = new World(600, swarmGen, true, true);
 
+// Random walk caused by a swarm of massive particles
+function swarmGen(index) {
+	let rnd = () => Math.random();
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	if (index === 0) {
+		let size = 60;
+		let mass = 50;
+		let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
+		let velocity = new Vector(rnd(), rnd());
+		return [size, position, velocity, mass];
+	} else {
+		let size = 4 + rnd() * 6;
+		let mass = size / 15;
+		let position = new Vector(rnd() * w, rnd() * h);
+		let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
+		return [size, position, velocity, mass];
+	}
+}
+var swarmWalk = new World(1000, swarmGen, true, true);
+
+// Particles fill form lattice domains like a solid crystal
+function latticeGen(index) {
+	let rnd = () => Math.random();
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	let size = 60;
+	let mass = 2;
+	let position = index > 500 ? new Vector(w / 2 - 100, h / 2) : new Vector(w / 2 + 100, h / 2);
+	let velocity = new Vector(rnd(), rnd());
+	return [size, position, velocity, mass];
+}
+var lattice = new World(1000, latticeGen, true, true);
 
 
 // Custom Generator template
