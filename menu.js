@@ -176,13 +176,13 @@ var ballChain = new World(50, ballChainGen, true, true);`,
         let h = window.innerHeight;
         if (index === 0) {
             let size = 60;
-            let mass = 50;
+            let mass = 5;
             let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
             let velocity = new Vector(rnd(), rnd());
             return [size, position, velocity, mass];
         } else {
             let size = 4 + rnd() * 6;
-            let mass = size / 15;
+            let mass = size / 5;
             let position = new Vector(rnd() * w, rnd() * h);
             let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
             return [size, position, velocity, mass];
