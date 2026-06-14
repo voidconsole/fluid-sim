@@ -160,6 +160,28 @@ var blowOver = new World(700, highSpeedLineGen, false, true);`,
     return [size, position, velocity, mass];
 }
 var ballChain = new World(50, ballChainGen, true, true);`,
+	'swarmWalk': `
+// Random walk caused by a swarm of massive particles
+function swarmGen(index) {
+	let rnd = () => Math.random();
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	if (index === 0) {
+		let size = 60;
+		let mass = 2;
+		let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
+		let velocity = new Vector(rnd(), rnd());
+		return [size, position, velocity, mass];
+	} else {
+		let size = 4 + rnd() * 6;
+		let mass = size / 5;
+		let position = new Vector(rnd() * w, rnd() * h);
+		let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
+		return [size, position, velocity, mass];
+	}
+}
+var swarmWalk = new World(600, swarmGen, true, true);
+`,
 };
 
 const CUSTOM_TEMPLATE = `let ParticleCount = 400
@@ -187,6 +209,7 @@ const GENERATOR_LIST = [
 	{ id: 'wallCrash', name: 'Wall Crash', particles: '100' },
 	{ id: 'blowOver', name: 'Blowover', particles: '700' },
 	{ id: 'ballChain', name: 'Ball Chain', particles: '50' },
+	{ id: 'swarmWalk', name: 'Swarm Walk', particles: '600' },
 ];
 
 let panelOpen = false;
@@ -223,7 +246,7 @@ function selectGenerator(id) {
 
 	const worldMap = {
 		wallCrash, fluidCrash, fluidCrashHD, explode,
-		HeatTransmissionWave, EnergyLine, blowOver, ballChain
+		HeatTransmissionWave, EnergyLine, blowOver, ballChain, swarmWalk
 	};
 	const world = worldMap[id];
 	if (world) startSimulation(world);
@@ -334,7 +357,7 @@ window.addEventListener('DOMContentLoaded', () => {
 	if (typeof window.maxParticleSpeed === 'undefined') window.maxParticleSpeed = 15;
 
 	renderGenList();
-	const starter = ['explode', 'HeatTransmissionWave', 'EnergyLine', 'blowOver', 'fluidCrash', 'wallCrash'];
+	const starter = ['explode', 'HeatTransmissionWave', 'EnergyLine', 'blowOver', 'fluidCrash', 'wallCrash', 'swarmWalk'];
 	const pick = starter[Math.floor(Math.random() * starter.length)];
 	selectGenerator(pick);
 	openEditor(GENERATOR_LIST.find(g => g.id === selectedGenId)?.name || 'Generator', GENERATOR_CODES[selectedGenId] || '', false);

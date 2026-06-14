@@ -8,7 +8,7 @@ class World {
 	}
 }
 
-// Heat transmission wave
+// Heat transmission wave and pressure
 function heatWaveGen(index) {
 	let rnd = () => Math.random();
 	let w = window.innerWidth;
@@ -96,7 +96,7 @@ function fastFluidCrash(index) {
 }
 var fluidCrash = new World(partCount, fastFluidCrash, true, true);
 
-// High resolution collision
+// High resolution collision of fast fluid crashing into slow fluid
 let partCount2 = 7000;
 function fastFluidCrashHD(index) {
 	let rnd = () => Math.random();
@@ -121,7 +121,7 @@ function fastFluidCrashHD(index) {
 }
 var fluidCrashHD = new World(partCount2, fastFluidCrashHD, true, true);
 
-// Crash of two concentrated walls
+// Crash of two concentrated walls made of particles
 function wallCrashGen(index) {
 	let rnd = () => Math.random();
 	let w = window.innerWidth;
@@ -139,9 +139,9 @@ function wallCrashGen(index) {
 	}
 	return [size, position, velocity, mass];
 }
-var wallCrash = new World(400, wallCrashGen, true, true);	
+var wallCrash = new World(400, wallCrashGen, true, true);
 
-// Chain of balls
+// Chain of balls barely colliding
 function ballChainGen(index) {
 	let rnd = () => Math.random();
 	let w = window.innerWidth;
@@ -180,6 +180,28 @@ function explodeGen(index) {
 	return [size, position, velocity, mass];
 }
 var explode = new World(500, explodeGen, true, true);
+
+
+// Random walk caused by swarm of massive particles
+function swarmGen(index) {
+	let rnd = () => Math.random();
+	let w = window.innerWidth;
+	let h = window.innerHeight;
+	if (index === 0) {
+		let size = 60;
+		let mass = 2;
+		let position = new Vector(w / 2 + (rnd() - 0.5) * 50, h / 2 + (rnd() - 0.5) * 120);
+		let velocity = new Vector(rnd(), rnd());
+		return [size, position, velocity, mass];
+	} else {
+		let size = 4 + rnd() * 6;
+		let mass = size / 5;
+		let position = new Vector(rnd() * w, rnd() * h);
+		let velocity = new Vector((rnd() - 0.5) * 10.2, (rnd() - 0.5) * 10.2);
+		return [size, position, velocity, mass];
+	}
+}
+var swarmWalk = new World(600, swarmGen, true, true);
 
 
 
