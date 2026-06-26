@@ -209,6 +209,7 @@ let ParticleCount = 400
 let ContainX = true
 let ContainY = true
 let CustomFrameRate = 30
+let TrailEnabled = true
 function myGenerator(ParticleIndex) {
     let rnd = () => Math.random();
     let w = window.innerWidth;
@@ -219,7 +220,7 @@ function myGenerator(ParticleIndex) {
     let velocity = new Vector(rnd() * 10, rnd() * 10);
     return [size, position, velocity, mass];
 }
-var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, CustomFrameRate);`;
+var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, TrailEnabled, CustomFrameRate);`;
 
 const GENERATOR_LIST = [
 	{ id: 'explode', name: 'Explosion', particles: '500' },

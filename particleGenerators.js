@@ -1,10 +1,11 @@
 class World {
-	constructor(particleCount, particleGenerator, containX = true, containY = true, frameRate = 30) {
+	constructor(particleCount, particleGenerator, containX = true, containY = true, trailEnabled = false, frameRate = 30) {
 		this.particleCount = particleCount;
 		this.particleGenerator = particleGenerator;
 		this.containX = containX;
 		this.containY = containY;
 		this.frameRate = frameRate;
+		this.trailEnabled = trailEnabled;
 	}
 }
 
@@ -243,6 +244,7 @@ let ParticleCount = 400;
 let ContainX = true;
 let ContainY = true;
 let CustomFrameRate = 30;
+let TrailEnabled = true;
 function myGenerator(ParticleIndex) {
 	let rnd = () => Math.random();
 	let w = window.innerWidth;
@@ -253,4 +255,4 @@ function myGenerator(ParticleIndex) {
 	let velocity = new Vector(rnd() * 10, rnd() * 10);
 	return [size, position, velocity, mass];
 }
-var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, CustomFrameRate);
+var myWorld = new World(ParticleCount, myGenerator, ContainX, ContainY, TrailEnabled, CustomFrameRate);

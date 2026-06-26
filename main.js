@@ -22,13 +22,13 @@ class Vector {
 }
 
 class Particle {
-	constructor(size, position, velocity, mass = 1, rigidity = false) {
+	constructor(size, position, velocity, mass = 1, rigidity = false, trail = [null, null]) {
 		this.size = size
 		this.position = position
 		this.mass = mass
 		this.velocity = velocity
 		this.rigid = rigidity
-		
+		this.trail = trail
 	}
 	display() {
 		noStroke()
@@ -61,6 +61,13 @@ class Particle {
 			if (thisWorld.containY) this.velocity.y = -this.velocity.y
 			else this.position.y = height
 		}
+		if (this.trail[0] !== null && this.trail[1] !== null) {
+			this.trail[0] = new Vector(this.position.x, this.position.y)
+			this.trail[1] = new Vector(this.position.x + this.velocity.x, this.position.y + this.velocity.y)
+			stroke(255)
+			strokeWeight(2)
+			line(this.trail[0].x, this.trail[0].y, this.trail[1].x, this.trail[1].y)
+		}
 		this.position.add(this.velocity)
 	}
 	collide(other) {
@@ -74,22 +81,23 @@ class Particle {
 				(other.position.x - this.position.x) / hyp,
 				(other.position.y - this.position.y) / hyp,
 			)
+			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
+			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
 			let overlap =
-				(particleDist - (this.size / 2 + other.size / 2)) / 2 + 0.01
+				(particleDist - (this.size / 2 + other.size / 2)) / 2
+			// if (Math.abs(overlap) > 0.00002) {
 			let backoff = new Vector(normal.x * overlap, normal.y * overlap)
-			this.position.add(backoff)
-			other.position.sub(backoff)
+			this.position.add(backoff.scale(harmonic / this.mass))
+			other.position.sub(backoff.scale(harmonic / other.mass))
+			// }
 			let relative = new Vector(
 				this.velocity.x - other.velocity.x,
 				this.velocity.y - other.velocity.y,
 			)
 			let projection = relative.x * normal.x + relative.y * normal.y
 			let delta = new Vector(projection * normal.x, projection * normal.y)
-			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
-			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
 			this.velocity.sub(delta.scale(harmonic / this.mass))
 			other.velocity.add(delta.scale(harmonic / other.mass))
-
 			collisions += 1
 		}
 	}
@@ -140,7 +148,7 @@ function initParticles() {
 	particles = []
 	for (let k = 0; k < thisWorld.particleCount; k++) {
 		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
-		particles.push(new Particle(size, position, velocity, mass, false))
+		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailEnabled ? [position, position] : [null, null]))
 	}
 }
 
