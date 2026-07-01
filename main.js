@@ -1,4 +1,27 @@
 
+ops = {
+	sum: (A, B) => {
+		return new Vector(A.x + B.x, A.y + B.y)
+	},
+	difference: (A, B) => {
+		return new Vector(A.x - B.x, A.y - B.y)
+	},
+	dot: (A, B) => {
+		return A.x * B.x + A.y * B.y
+	},
+	cross: (A, B) => {
+		return A.x * B.y - A.y * B.x
+	},
+	magnitude: (A) => {
+		return (A.x ** 2 + A.y ** 2) ** (1 / 2)
+	},
+	scale: (A, s) => {
+		return new Vector(A.x * s, A.y * s)
+	},
+	unit: (A) => {
+		return new Vector(A.x / (A.x ** 2 + A.y ** 2) ** (1 / 2), A.y / (A.x ** 2 + A.y ** 2) ** (1 / 2))
+	}
+}
 class Vector {
 	constructor(x, y) {
 		this.x = x
@@ -16,13 +39,11 @@ class Vector {
 		this.x *= s
 		this.y *= s
 	}
-	scale(s) {
-		return new Vector(this.x * s, this.y * s)
-	}
 }
 
 class Particle {
 	constructor(size, position, velocity, mass = 1, rigidity = false, trail = [null, null]) {
+		this.radius = size/2
 		this.size = size
 		this.position = position
 		this.mass = mass
@@ -44,7 +65,6 @@ class Particle {
 		blue = Math.max(0, Math.min(255, blue))
 		fill(red, 0, blue)
 		ellipse(this.position.x, this.position.y, this.size, this.size)
-		if (this.rigid) { this.mass = Infinity; }
 	}
 	move() {
 		if (this.position.x >= width) {
@@ -63,7 +83,7 @@ class Particle {
 		}
 		if (this.trail[0] !== null && this.trail[1] !== null) {
 			this.trail[0] = new Vector(this.position.x, this.position.y)
-			this.trail[1] = new Vector(this.position.x + this.velocity.x, this.position.y + this.velocity.y)
+			this.trail[1] = ops.sum(this.position, this.velocity)
 			stroke(255)
 			strokeWeight(2)
 			line(this.trail[0].x, this.trail[0].y, this.trail[1].x, this.trail[1].y)
@@ -72,32 +92,31 @@ class Particle {
 	}
 	collide(other) {
 		const particleDist = getDist(this, other)
-		if (particleDist <= this.size / 2 + other.size / 2) {
+		if (particleDist <= this.radius + other.radius) {
 			let hyp = Math.hypot(
 				other.position.x - this.position.x,
 				other.position.y - this.position.y,
 			)
-			let normal = new Vector(
-				(other.position.x - this.position.x) / hyp,
-				(other.position.y - this.position.y) / hyp,
-			)
+			let normal = ops.scale(ops.difference(other.position, this.position), 1 / hyp)
 			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
 			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
-			let overlap =
-				(particleDist - (this.size / 2 + other.size / 2)) / 2
+			let overlap = (particleDist - (this.radius + other.radius)) / 2
 			// if (Math.abs(overlap) > 0.00002) {
-			let backoff = new Vector(normal.x * overlap, normal.y * overlap)
-			this.position.add(backoff.scale(harmonic / this.mass))
-			other.position.sub(backoff.scale(harmonic / other.mass))
+			let backoff = ops.scale(normal, overlap)
+			this.position.add(ops.scale(backoff, (harmonic / this.mass)))
+			other.position.sub(ops.scale(backoff, (harmonic / other.mass)))
 			// }
-			let relative = new Vector(
-				this.velocity.x - other.velocity.x,
-				this.velocity.y - other.velocity.y,
-			)
-			let projection = relative.x * normal.x + relative.y * normal.y
-			let delta = new Vector(projection * normal.x, projection * normal.y)
-			this.velocity.sub(delta.scale(harmonic / this.mass))
-			other.velocity.add(delta.scale(harmonic / other.mass))
+			hyp = Math.hypot(
+				other.position.x - this.position.x,
+				other.position.y - this.position.y,
+			); normal = ops.scale(ops.difference(other.position, this.position), 1 / hyp) // recompute normals
+			let relative = ops.difference(this.velocity, other.velocity)
+			let projection = ops.dot(normal, relative)
+			let delta = ops.scale(normal, projection)
+			
+			if (projection <= 0) return; // only bounce if moving toward each other
+			this.velocity.sub(ops.scale(delta, (harmonic / this.mass)))
+			other.velocity.add(ops.scale(delta, (harmonic / other.mass)))
 			collisions += 1
 		}
 	}
@@ -134,15 +153,19 @@ function getDist(a, b) {
 }
 function triangulate(colliders) {
 	for (let i = 0; i < colliders.length; i++) {
-		colliders[i].display()
-		colliders[i].move()
+		colliders[i].move();
 	}
+
 	for (let i = 0; i < colliders.length; i++) {
 		for (let j = i + 1; j < colliders.length; j++) {
-			colliders[i].collide(colliders[j])
+			colliders[i].collide(colliders[j]);
 		}
 	}
+	for (let i = 0; i < colliders.length; i++) {
+		colliders[i].display();
+	}
 }
+
 
 function initParticles() {
 	particles = []
@@ -150,6 +173,7 @@ function initParticles() {
 		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
 		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailEnabled ? [position, position] : [null, null]))
 	}
+
 }
 
 function setup() {
@@ -170,6 +194,7 @@ function startSimulation(world) {
 	thisWorld = world
 	collisions = 0
 	isPaused = false
+
 	initParticles()
 	if (typeof frameRate === 'function') frameRate(thisWorld.frameRate || 30)
 	if (typeof loop === 'function') loop()
