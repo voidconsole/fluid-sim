@@ -41,6 +41,40 @@ class Vector {
 	}
 }
 
+class Wall {
+	constructor(start, end) {
+		this.start = start
+		this.end = end
+		this.direction = ops.difference(this.end, this.start)
+	}
+	display() {
+		stroke(255)
+		strokeWeight(1)
+		line(this.start.x, this.start.y, this.end.x, this.end.y)
+		// ellipse(this.start.x, this.start.y, this.end.x - this.start.x, this.end.y - this.start.y)
+	}
+	bounce(particle) {
+		let proximity = ops.difference(particle.position, this.start);
+		let wallLength = ops.magnitude(this.direction);
+		if (wallLength === 0) return;
+		let shadow = ops.dot(this.direction, proximity) / wallLength;
+		if (shadow > wallLength || shadow < 0) return; // check if particle is within the line segment bounds
+		let perpendicular = ops.cross(this.direction, proximity) / wallLength; // distance to particle
+
+		if (Math.abs(perpendicular) <= particle.radius) {
+			let sign = perpendicular >= 0 ? 1 : -1;
+			let normal = ops.unit(new Vector(-this.direction.y * sign, this.direction.x * sign));
+			let overlap = particle.radius - Math.abs(perpendicular);
+			let backoff = ops.scale(normal, overlap);
+			particle.position.add(backoff);
+			let projection = ops.dot(particle.velocity, normal);
+			if (projection < 0) { // Only bounce if moving towards the wall
+				let delta = ops.scale(normal, 2 * projection);
+				particle.velocity.sub(delta);
+			}
+		}
+	}
+}
 class Particle {
 	constructor(size, position, velocity, mass = 1, rigidity = false, trail = [null, null]) {
 		this.radius = size/2
@@ -113,7 +147,7 @@ class Particle {
 			let relative = ops.difference(this.velocity, other.velocity)
 			let projection = ops.dot(normal, relative)
 			let delta = ops.scale(normal, projection)
-			
+
 			if (projection <= 0) return; // only bounce if moving toward each other
 			this.velocity.sub(ops.scale(delta, (harmonic / this.mass)))
 			other.velocity.add(ops.scale(delta, (harmonic / other.mass)))
@@ -127,6 +161,7 @@ let thisWorld = null
 let collisions = 0
 let isPaused = false
 let particles = []
+let walls = []
 
 function totalEnergy() {
 	energy = 0
@@ -151,9 +186,10 @@ function lerpBetween(value, fromLow, fromHigh, toLow, toHigh) {
 function getDist(a, b) {
 	return Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
 }
-function triangulate(colliders) {
+function triangulate(colliders, contraints) {
 	for (let i = 0; i < colliders.length; i++) {
 		colliders[i].move();
+		contraints.forEach((constraint) => constraint.bounce(colliders[i]));
 	}
 
 	for (let i = 0; i < colliders.length; i++) {
@@ -161,12 +197,17 @@ function triangulate(colliders) {
 			colliders[i].collide(colliders[j]);
 		}
 	}
+	contraints.forEach((constraint) => constraint.display());
 	for (let i = 0; i < colliders.length; i++) {
 		colliders[i].display();
 	}
 }
 
 
+function initWalls() {
+	let MyWall = new Wall(new Vector(0, 200), new Vector(5000, 5000))
+	walls.push(MyWall)
+}
 function initParticles() {
 	particles = []
 	for (let k = 0; k < thisWorld.particleCount; k++) {
@@ -186,7 +227,7 @@ function setup() {
 function draw() {
 	background(4, 8, 12)
 	if (!thisWorld) return
-	triangulate(particles)
+	triangulate(particles, walls)
 }
 
 function startSimulation(world) {
@@ -194,7 +235,7 @@ function startSimulation(world) {
 	thisWorld = world
 	collisions = 0
 	isPaused = false
-
+	// initWalls()
 	initParticles()
 	if (typeof frameRate === 'function') frameRate(thisWorld.frameRate || 30)
 	if (typeof loop === 'function') loop()
