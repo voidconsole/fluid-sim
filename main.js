@@ -1,4 +1,5 @@
 
+
 ops = {
 	sum: (A, B) => {
 		return new Vector(A.x + B.x, A.y + B.y)
@@ -77,7 +78,7 @@ class Wall {
 }
 class Particle {
 	constructor(size, position, velocity, mass = 1, rigidity = false, trail = [null, null]) {
-		this.radius = size/2
+		this.radius = size / 2
 		this.size = size
 		this.position = position
 		this.mass = mass
@@ -205,8 +206,8 @@ function triangulate(colliders, contraints) {
 
 
 function initWalls() {
-	let MyWall = new Wall(new Vector(0, 200), new Vector(5000, 5000))
-	walls.push(MyWall)
+	// let MyWall = new Wall(new Vector(0, 200), new Vector(100, 500))
+	// walls.push(MyWall)
 }
 function initParticles() {
 	particles = []
@@ -222,6 +223,7 @@ function setup() {
 	cnv.id('mycanvas')
 	colorMode(RGB, 255)
 	if (panelOpen) cnv.elt.classList.add('panel-open')
+	handleInteractions()
 }
 
 function draw() {
@@ -235,29 +237,31 @@ function startSimulation(world) {
 	thisWorld = world
 	collisions = 0
 	isPaused = false
-	// initWalls()
+	initWalls()
 	initParticles()
 	if (typeof frameRate === 'function') frameRate(thisWorld.frameRate || 30)
 	if (typeof loop === 'function') loop()
 	updatePlayPauseBtn()
+	handleInteractions()
 }
 function handlePlayPause() {
+	handleInteractions()
 	isPaused = !isPaused
-	if (isPaused) window.noLoop();
-	else window.loop();
+	if (isPaused) window.noLoop()
+	else window.loop()
 	updatePlayPauseBtn()
 	console.log("Momentum:" + totalMomentum() + " Energy:", totalEnergy())
 }
 
 function handleRestart() {
-	if (thisWorld) startSimulation(thisWorld)
+	if (thisWorld) {
+		startSimulation(thisWorld)
+		walls = []
+	}
 }
 
 function updatePlayPauseBtn() {
-	const icon = document.getElementById("play-icon")
 	const label = document.getElementById("play-label")
-	if (!icon || !label) return
-	icon.textContent = isPaused ? "▶" : "⏸"
 	label.textContent = isPaused ? "Play" : "Pause"
 }
 function windowResized() {
@@ -268,6 +272,36 @@ function svgHandler(svgObject) {
 	let path = svg.Object(svgObject).select('path')
 }
 
+
+
+let interactionsInit = false;
+function handleInteractions() {
+	if (interactionsInit) return;
+	interactionsInit = true;
+	let dragged = false
+	let start = null
+	window.addEventListener("mousedown", (e) => {
+		start = new Vector(e.clientX, e.clientY)
+		dragged = false
+	})
+	document.addEventListener("mousemove", () => {
+		dragged = true
+	})
+	window.addEventListener("mouseup", (e) => {
+		if (!dragged) return
+		const end = new Vector(e.clientX, e.clientY)
+		walls.push(new Wall(start, end))
+		walls[walls.length - 1].display()
+	})
+	window.addEventListener("keydown", (e) => {
+		if (e.key === " ") {
+			e.preventDefault()
+			handlePlayPause()
+		} else if (e.key === "r") {
+			handleRestart()
+		}
+	});
+}
 
 
 let prevCollisions = 0
