@@ -118,7 +118,7 @@ class Particle {
 		}
 		if (this.trail[0] !== null && this.trail[1] !== null) {
 			this.trail[0] = new Vector(this.position.x, this.position.y)
-			this.trail[1] = ops.sum(this.position, this.velocity)
+			this.trail[1] = ops.sum(this.position, ops.scale(this.velocity, -this.trail[2]))
 			stroke(255)
 			strokeWeight(2)
 			line(this.trail[0].x, this.trail[0].y, this.trail[1].x, this.trail[1].y)
@@ -213,7 +213,7 @@ function initParticles() {
 	particles = []
 	for (let k = 0; k < thisWorld.particleCount; k++) {
 		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
-		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailEnabled ? [position, position] : [null, null]))
+		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
 	}
 
 }
