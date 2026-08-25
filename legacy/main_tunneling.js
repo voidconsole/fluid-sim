@@ -20,28 +20,9 @@ ops = {
 		return new Vector(A.x * s, A.y * s)
 	},
 	unit: (A) => {
-		const mag = (A.x ** 2 + A.y ** 2) ** (1 / 2)
-		if (mag === 0) return new Vector(0, 0)
-		return new Vector(A.x / mag, A.y / mag)
-	},
-	project: (A, B, clamp = false) => {
-		let s = (A.x * B.x + A.y * B.y) / (B.x ** 2 + B.y ** 2)
-		if (clamp) {
-			s = Math.max(0, Math.min(1, s))
-		}
-		return new Vector(B.x * s, B.y * s)
-	},
-
-	intersect: (A1, A2, B1, B2) => {
-		const o1 = (A2.y - A1.y) * (B1.x - A2.x) - (A2.x - A1.x) * (B1.y - A2.y)
-		const o2 = (A2.y - A1.y) * (B2.x - A2.x) - (A2.x - A1.x) * (B2.y - A2.y)
-		const o3 = (B2.y - B1.y) * (A1.x - B2.x) - (B2.x - B1.x) * (A1.y - B2.y)
-		const o4 = (B2.y - B1.y) * (A2.x - B2.x) - (B2.x - B1.x) * (A2.y - B2.y)
-		const crosses = (o1 * o2 < 0) && (o3 * o4 < 0) // unlike signs -> collision
-		return crosses // does not handle collinear cases and bounds overlap
+		return new Vector(A.x / (A.x ** 2 + A.y ** 2) ** (1 / 2), A.y / (A.x ** 2 + A.y ** 2) ** (1 / 2))
 	}
 }
-
 class Vector {
 	constructor(x, y) {
 		this.x = x
@@ -76,43 +57,126 @@ class Wall {
 		// ellipse(this.start.x, this.start.y, this.end.x - this.start.x, this.end.y - this.start.y)
 	}
 	bounce(particle) {
-		let P = ops.difference(particle.position, this.start) // wall frame
-		let projection = ops.project(P, this.wall, true)
-		let normal = ops.difference(ops.project(P, this.wall, true), P)
-		if (ops.magnitude(normal) < particle.radius) {
-			const correction = ops.scale(
-				ops.unit(normal),
-				ops.magnitude(normal) - particle.radius
-			)
-			particle.position.add(correction)
-			const delta = ops.dot(particle.velocity, ops.unit(normal))
-			if (delta > 0) {
-				particle.velocity.sub(ops.scale(ops.unit(normal), 2 * delta)
-				)
-			}
-			particle.lastcontact = this
-			return
-		}
-		if (!ops.intersect(particle.position, ops.sum(particle.position, particle.velocity), this.start, this.end)) return
-		P = ops.difference(particle.position, this.start) // wall frame
-		normal = ops.difference(ops.project(P, this.wall, false), P)
-		let G = ops.sum(P, particle.velocity) // ghost
-		let apexP = ops.sum(P, ops.scale(ops.unit(normal), particle.radius)) // apex point
-		let apexG = ops.sum(G, ops.scale(ops.unit(normal), particle.radius))
-		if (ops.cross(apexG, this.wall) * ops.cross(apexP, this.wall) <= 0) {
-			// console.log("collided", apexG, Pa, n, ops.cross(Ga, this.wall), ops.cross(Pa, this.wall))
-			// let GTFPs = ops.sum(apexG, ops.scale(n, -2))
-			let apexGNormal = ops.difference(
-				ops.project(apexG, this.wall, false),
-				apexG
-			)
-			let prediction = ops.sum(this.start, ops.sum(G, ops.scale(apexGNormal, 2))) // world frame from wall frame
-			particle.position = prediction
-			particle.velocity.add(ops.scale(ops.project(particle.velocity, normal), -2)) //reflect v
-			// console.log(" True ghost 	future position", prediction, "future velocity", FutureVelocity)
-			particle.lastcontact = this
-		}
+		if (particle.lastcontact == this) return
+		let phantom = ops.difference(particle.position, particle.velocity)
+		let ghost = ops.sum(particle.position, particle.velocity)
+		let proximity = ops.difference(particle.position, this.start)
+		let phantomProximity = ops.difference(phantom, this.start)
+		let ghostProximity = ops.difference(ghost, this.start)
+		if (this.length === 0) return
+		let shadow = ops.dot(this.direction, proximity)
+		let phantomShadow = ops.dot(this.direction, phantomProximity)
+		let ghostShadow = ops.dot(this.direction, ghostProximity)
+		if ((phantomShadow < 0 && shadow < 0) || (phantomShadow > this.length && shadow > this.length)) return
 
+		let perpendicular = ops.cross(this.direction, proximity)
+		let phantomPerpendicular = ops.cross(this.direction, phantomProximity)
+
+		// if (Math.abs(perpendicular) <= particle.radius) {
+		// 	let sign = perpendicular >= 0 ? 1 : -1;
+		// 	let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign));
+		// 	let overlap = particle.radius - Math.abs(perpendicular);
+		// 	let backoff = ops.scale(normal, overlap);
+		// 	particle.position.add(backoff);
+		// 	let projection = ops.dot(particle.velocity, normal)
+		// 	if (projection < 0) { // Only bounce if moving towards the wall
+		// 		let delta = ops.scale(normal, 2 * projection)
+		// 		particle.velocity.sub(delta)
+		// 	}
+		// 	return
+		// }
+
+		// one sign for the whole frame, based on the phantom (last known valid, pre-collision) side
+		let sign = phantomPerpendicular >= 0 ? 1 : -1
+
+		let apex = perpendicular * sign - particle.radius
+		let phantomApex = phantomPerpendicular * sign - particle.radius
+		if (apex * phantomApex >= 0) return
+		let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign))
+		// snap the particle's edge to exactly `radius` from the wall line, not the center onto the line
+		particle.position.sub(ops.scale(normal, apex))
+		let projection = ops.dot(particle.velocity, normal)
+		let delta = ops.scale(normal, 2 * projection)
+		particle.velocity.sub(delta)
+		if (Math.abs(perpendicular) > particle.radius) { particle.lastcontact = this; return }
+
+		// if (Math.abs(perpendicular) <= particle.radius) {
+		// 	let sign = perpendicular >= 0 ? 1 : -1;
+		// 	let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign));
+		// 	let overlap = particle.radius - Math.abs(perpendicular);
+		// 	let backoff = ops.scale(normal, overlap);
+		// 	particle.position.add(backoff);
+		// 	let projection = ops.dot(particle.velocity, normal)
+		// 	if (projection < 0) { // Only bounce if moving towards the wall
+		// 		let delta = ops.scale(normal, 2 * projection)
+		// 		particle.velocity.sub(delta)
+		// 	}
+		// 	return
+		// }
+		// let sign = perpendicular >= 0 ? 1 : -1;
+		// let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign));
+
+		// let apex = ops.sum(particle.position, ops.scale(normal, particle.radius))
+		// fill(0, 255, 0)
+		// ellipse(apex.x, apex.y, 5, 5)
+		// let phantomSign = phantomPerpendicular >= 0 ? 1 : -1;
+		// let phantomNormal = ops.unit(new Vector(-this.wall.y * phantomSign, this.wall.x * phantomSign));
+
+		// let phantomApex = ops.difference(phantom, ops.scale(phantomNormal, particle.radius))
+		// fill(105, 100, 110)
+		// ellipse(phantomApex.x, phantomApex.y, 5, 5)
+
+
+		// let proximityApex = ops.difference(particle.position, this.start);
+		// let phantomProximityApex = ops.difference(phantom, this.start)
+		// if (this.length === 0) return;
+
+		// let shadowApex = ops.dot(this.direction, proximityApex)
+		// let phantomShadowApex = ops.dot(this.direction, phantomProximityApex)
+
+		// if ((phantomShadowApex < 0 && shadowApex < 0) || (phantomShadowApex > this.length && shadowApex > this.length)) return
+		// // if particle is within the segment bounds
+
+		// let perpendicularApex = ops.cross(this.direction, proximityApex) // distance to particle
+		// let phantomPerpendicularApex = ops.cross(this.direction, phantomProximityApex)
+
+		// if (phantomPerpendicularApex * perpendicularApex <= 0) {
+		// 	// phantom particle ~quantum~ tunneled wall
+
+
+
+		// }
+
+		// if (Math.abs(perpendicular) <= particle.radius) {
+		// 	let sign = perpendicular >= 0 ? 1 : -1;
+		// 	let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign));
+		// 	let overlap = particle.radius - Math.abs(perpendicular);
+		// 	let backoff = ops.scale(normal, overlap);
+		// 	particle.position.add(backoff);
+		// 	let projection = ops.dot(particle.velocity, normal);
+		// 	if (projection < 0) { // Only bounce if moving towards the wall
+		// 		let delta = ops.scale(normal, 2 * projection);
+		// 		particle.velocity.sub(delta);
+		// 		particle.lastcontact = this
+		// 		// return true
+		// 	}
+		// }
+		// 	return false
+		// } else if (perpendicular * phantomPerpendicular <= 0) { // same sign
+		// 	// phantom particle ~quantum~ tunneled wall 
+		// 	let displacement = ops.scale(this.direction, phantomShadow - shadow) // signed
+		// 	particle.position.add(displacement)
+		// 	let sign = perpendicular >= 0 ? 1 : -1;
+		// 	let normal = ops.unit(new Vector(-this.wall.y * sign, this.wall.x * sign));
+		// 	let projection = ops.dot(particle.velocity, normal)
+		// 	if (projection < 0) { // Only bounce if moving towards the wall
+		// 		let delta = ops.scale(normal, 2 * projection)
+		// 		particle.velocity.sub(delta)
+		// 	}
+		// 	return true
+
+		// }
+		// return false
 	}
 }
 class Particle {
@@ -170,40 +234,36 @@ class Particle {
 		this.position.add(this.velocity)
 	}
 	collide(other) {
-		let difference = ops.difference(
-			other.position,
-			this.position
-		)
-		let hyp = ops.magnitude(difference)
-
-		if (hyp === 0) { // prevent superposition
-			difference = new Vector(Math.random() - 0.5, Math.random() - 0.5)
-			hyp = ops.magnitude(difference)
-		}
-
-		let overlap = (hyp - (this.radius + other.radius)) / 2
-		if (overlap < 0) {
-			let normal = ops.scale(difference, 1 / hyp)
+		const particleDist = getDist(this, other)
+		if (particleDist <= this.radius + other.radius) {
+			let hyp = Math.hypot(
+				other.position.x - this.position.x,
+				other.position.y - this.position.y,
+			)
+			let normal = ops.scale(ops.difference(other.position, this.position), 1 / hyp)
 			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
 			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
+			let overlap = (particleDist - (this.radius + other.radius)) / 2
+			// if (Math.abs(overlap) > 0.00002) {
 			let backoff = ops.scale(normal, overlap)
-			this.position.add(ops.scale(backoff, (harmonic / this.mass))) // pauli exclusion ;)
+			this.position.add(ops.scale(backoff, (harmonic / this.mass)))
 			other.position.sub(ops.scale(backoff, (harmonic / other.mass)))
-
-			let relative = ops.difference(
-				this.velocity,
-				other.velocity
+			// }
+			hyp = Math.hypot(
+				other.position.x - this.position.x,
+				other.position.y - this.position.y,
 			)
+			normal = ops.scale(ops.difference(other.position, this.position), 1 / hyp) // recompute normals
+			let relative = ops.difference(this.velocity, other.velocity)
 			let projection = ops.dot(normal, relative)
+			let delta = ops.scale(normal, projection)
 
-			if (projection > 0) { // only if heading towards
-				let delta = ops.scale(normal, projection)
-				this.velocity.sub(ops.scale(delta, (harmonic / this.mass)))
-				other.velocity.add(ops.scale(delta, (harmonic / other.mass)))
-				this.lastcontact = other
-				other.lastcontact = this
-				collisions += 1
-			}
+			if (projection <= 0) return; // only bounce if moving toward each other
+			this.velocity.sub(ops.scale(delta, (harmonic / this.mass)))
+			other.velocity.add(ops.scale(delta, (harmonic / other.mass)))
+			this.lastcontact = other
+			other.lastcontact = this
+			collisions += 1
 		}
 	}
 }
@@ -239,11 +299,20 @@ function getDist(a, b) {
 	return Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y)
 }
 function triangulate(colliders, contraints) {
-	// for (let i = 0; i < colliders.length; i++) {
-	// 	for (let j = i + 1; j < colliders.length; j++) {
-	// 		colliders[i].collide(colliders[j]);
-	// 	}
-	// }
+	for (let i = 0; i < colliders.length; i++) {
+		colliders[i].move()
+	}
+
+	for (let i = 0; i < colliders.length; i++) {
+		contraints.forEach((constraint) => {
+			constraint.bounce(colliders[i])
+		})
+	}
+	for (let i = 0; i < colliders.length; i++) {
+		for (let j = i + 1; j < colliders.length; j++) {
+			colliders[i].collide(colliders[j]);
+		}
+	}
 
 	for (let i = 0; i < colliders.length; i++) {
 		contraints.forEach((constraint) => {
@@ -251,16 +320,6 @@ function triangulate(colliders, contraints) {
 		})
 	}
 
-	for (let i = 0; i < colliders.length; i++) {
-		// if (colliders[i].lastcontact === "wall") continue
-		colliders[i].move()
-
-	}
-	for (let i = 0; i < colliders.length; i++) {
-		for (let j = i + 1; j < colliders.length; j++) {
-			colliders[i].collide(colliders[j]);
-		}
-	}
 
 	for (let i = 0; i < colliders.length; i++) {
 		colliders[i].display()
@@ -281,7 +340,7 @@ function initParticles() {
 		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
 	}
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(100, 10), 1, false))
-	// particles.push(new Particle(30, new Vector(13, 20), new Vector(40, 1), 1, false))
+	// particles.push(new Particle(30, new Vector(13, 20), new Vector(10, 10), 1, false))
 	// particles.push(new Particle(30, new Vector(13, 30), new Vector(20, 10), 1, false))
 	// particles.push(new Particle(30, new Vector(13, 40), new Vector(20, 10), 1, false))
 	// particles.push(new Particle(30, new Vector(13, 50), new Vector(20, 10), 1, false))
