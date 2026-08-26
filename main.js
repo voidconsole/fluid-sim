@@ -1,5 +1,3 @@
-
-
 ops = {
 	sum: (A, B) => {
 		return new Vector(A.x + B.x, A.y + B.y)
@@ -20,25 +18,40 @@ ops = {
 		return new Vector(A.x * s, A.y * s)
 	},
 	unit: (A) => {
-		const mag = (A.x ** 2 + A.y ** 2) ** (1 / 2)
+		const mag = Math.hypot(A.x, A.y)
 		if (mag === 0) return new Vector(0, 0)
 		return new Vector(A.x / mag, A.y / mag)
 	},
 	project: (A, B, clamp = false) => {
-		let s = (A.x * B.x + A.y * B.y) / (B.x ** 2 + B.y ** 2)
+		const denom = B.x ** 2 + B.y ** 2
+		if (denom === 0) return new Vector(0, 0) // Prevents division by zero
+		let s = (A.x * B.x + A.y * B.y) / denom
 		if (clamp) {
 			s = Math.max(0, Math.min(1, s))
 		}
 		return new Vector(B.x * s, B.y * s)
 	},
+	intersect: (A1, A2, B1, B2, coordinate = false) => {
+		const o1 = (A2.y - A1.y) * (B1.x - A2.x)
+			- (A2.x - A1.x) * (B1.y - A2.y)
 
-	intersect: (A1, A2, B1, B2) => {
-		const o1 = (A2.y - A1.y) * (B1.x - A2.x) - (A2.x - A1.x) * (B1.y - A2.y)
-		const o2 = (A2.y - A1.y) * (B2.x - A2.x) - (A2.x - A1.x) * (B2.y - A2.y)
-		const o3 = (B2.y - B1.y) * (A1.x - B2.x) - (B2.x - B1.x) * (A1.y - B2.y)
-		const o4 = (B2.y - B1.y) * (A2.x - B2.x) - (B2.x - B1.x) * (A2.y - B2.y)
-		const crosses = (o1 * o2 < 0) && (o3 * o4 < 0) // unlike signs -> collision
-		return crosses // does not handle collinear cases and bounds overlap
+		const o2 = (A2.y - A1.y) * (B2.x - A2.x)
+			- (A2.x - A1.x) * (B2.y - A2.y)
+
+		const o3 = (B2.y - B1.y) * (A1.x - B2.x)
+			- (B2.x - B1.x) * (A1.y - B2.y)
+
+		const o4 = (B2.y - B1.y) * (A2.x - B2.x)
+			- (B2.x - B1.x) * (A2.y - B2.y)
+
+		const crosses = (o1 * o2 < 0) && (o3 * o4 < 0)
+		if (!coordinate) return crosses
+		if (!crosses) return null
+		const weight = o1 / (o1 - o2)
+		return new Vector(
+			B1.x + weight * (B2.x - B1.x),
+			B1.y + weight * (B2.y - B1.y)
+		)
 	}
 }
 
@@ -68,7 +81,12 @@ class Wall {
 		this.wall = ops.difference(this.end, this.start)
 		this.direction = ops.unit(this.wall)
 		this.length = ops.magnitude(this.wall)
+		particles.push(new Particle(3, this.start, new Vector(0, 0), 1, true))
+		particles[particles.length - 1].display()
+		particles.push(new Particle(3, this.end, new Vector(0, 0), 1, true))
+		particles[particles.length - 1].display()
 	}
+
 	display() {
 		stroke(255)
 		strokeWeight(1)
@@ -76,6 +94,9 @@ class Wall {
 		// ellipse(this.start.x, this.start.y, this.end.x - this.start.x, this.end.y - this.start.y)
 	}
 	bounce(particle) {
+		// console.log("bouncing", particle)
+		if (particle.rigid) return
+		if (particle.lastcontact === this) return
 		let P = ops.difference(particle.position, this.start) // wall frame
 		let projection = ops.project(P, this.wall, true)
 		let normal = ops.difference(ops.project(P, this.wall, true), P)
@@ -108,23 +129,25 @@ class Wall {
 			)
 			let prediction = ops.sum(this.start, ops.sum(G, ops.scale(apexGNormal, 2))) // world frame from wall frame
 			particle.position = prediction
-			particle.velocity.add(ops.scale(ops.project(particle.velocity, normal), -2)) //reflect v
+			if (!particle.rigid) particle.velocity.add(ops.scale(ops.project(particle.velocity, normal), -2)) //reflect v
 			// console.log(" True ghost 	future position", prediction, "future velocity", FutureVelocity)
 			particle.lastcontact = this
+			particle.skipnext = true
 		}
 
 	}
 }
 class Particle {
-	constructor(size, position, velocity, mass = 1, rigidity = false, trail = [null, null]) {
+	constructor(size, position, velocity, mass = 1, rigid = false, trail = [null, null]) {
 		this.radius = size / 2
 		this.size = size
 		this.position = position
-		this.mass = mass
+		this.mass = rigid ? Infinity : mass
+		this.rigid = rigid
 		this.velocity = velocity
-		this.rigid = rigidity
 		this.trail = trail
 		this.lastcontact = null
+		this.skipnext = false
 	}
 	display() {
 		noStroke()
@@ -138,7 +161,8 @@ class Particle {
 		let blue = lerpBetween(s, 0, maxSpeed, 255, 0)
 		red = Math.max(0, Math.min(255, red))
 		blue = Math.max(0, Math.min(255, blue))
-		fill(red, 0, blue)
+		if (this.rigid) fill(255, 255, 0)
+		else fill(red, 0, blue)
 		ellipse(this.position.x, this.position.y, this.size, this.size)
 	}
 	move() {
@@ -170,6 +194,8 @@ class Particle {
 		this.position.add(this.velocity)
 	}
 	collide(other) {
+		if (this.rigid && other.rigid) return
+		// if (this.lastcontact === other || other.lastcontact === this) return  // consider persistent contact
 		let difference = ops.difference(
 			other.position,
 			this.position
@@ -186,6 +212,7 @@ class Particle {
 			let normal = ops.scale(difference, 1 / hyp)
 			// this was supposed to be dimensions of mass. and using case A = B, it tells it must be a mean, and using A = Infinity, tells it should be harmonic mean
 			let harmonic = 2 / ((1 / this.mass) + (1 / other.mass)) // Not using reduced form because inf mass results in NaN
+			if (harmonic === Infinity) harmonic = Math.min(this.mass, other.mass)
 			let backoff = ops.scale(normal, overlap)
 			this.position.add(ops.scale(backoff, (harmonic / this.mass))) // pauli exclusion ;)
 			other.position.sub(ops.scale(backoff, (harmonic / other.mass)))
@@ -204,7 +231,9 @@ class Particle {
 				other.lastcontact = this
 				collisions += 1
 			}
+
 		}
+
 	}
 }
 
@@ -218,6 +247,7 @@ let walls = []
 function totalEnergy() {
 	energy = 0
 	for (let p of particles) {
+		if (p.rigid) continue
 		energy += 0.5 * p.mass * (p.velocity.x ** 2 + p.velocity.y ** 2)
 	}
 	return energy
@@ -226,6 +256,7 @@ function totalMomentum() {
 	momentumX = 0
 	momentumY = 0
 	for (let p of particles) {
+		if (p.rigid) continue
 		momentumX += p.velocity.x * p.mass
 		momentumY += p.velocity.y * p.mass
 	}
@@ -252,14 +283,19 @@ function triangulate(colliders, contraints) {
 	}
 
 	for (let i = 0; i < colliders.length; i++) {
-		// if (colliders[i].lastcontact === "wall") continue
+		if (colliders[i].rigid) continue
+		if (colliders[i].skipnext){colliders[i].skipnext = false;  continue}
 		colliders[i].move()
-
 	}
 	for (let i = 0; i < colliders.length; i++) {
 		for (let j = i + 1; j < colliders.length; j++) {
 			colliders[i].collide(colliders[j]);
 		}
+	}
+	for (let i = 0; i < colliders.length; i++) {
+		contraints.forEach((constraint) => {
+			constraint.bounce(colliders[i])
+		})
 	}
 
 	for (let i = 0; i < colliders.length; i++) {
@@ -271,16 +307,28 @@ function triangulate(colliders, contraints) {
 
 function initWalls() {
 	walls = []
-	// let MyWall = new Wall(new Vector(0, 200), new Vector(100, 500))
-	// walls.push(MyWall)
+	// if(thisWorld.containX) {
+	// 	walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
+	// 	walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
+	// }
+	// if(thisWorld.containY) {
+	// 	walls.push(new Wall(new Vector(0, -1), new Vector(window.innerWidth, -1)))
+	// 	walls.push(new Wall(new Vector(0, window.innerHeight + 1), new Vector(window.innerWidth, window.innerHeight + 1)))
+	// }
+	handleInteractions()
 }
+
 function initParticles() {
 	particles = []
 	for (let k = 0; k < thisWorld.particleCount; k++) {
 		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
 		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
 	}
-	// particles.push(new Particle(30, new Vector(13, 10), new Vector(100, 10), 1, false))
+	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 10))
+	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 3))
+	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), -12))
+
+
 	// particles.push(new Particle(30, new Vector(13, 20), new Vector(40, 1), 1, false))
 	// particles.push(new Particle(30, new Vector(13, 30), new Vector(20, 10), 1, false))
 	// particles.push(new Particle(30, new Vector(13, 40), new Vector(20, 10), 1, false))
@@ -288,12 +336,36 @@ function initParticles() {
 
 }
 
+function populateIntersections(newWall) {
+	if (newWall) {
+		for (const other of walls) {
+			if (other === newWall) continue
+			const intersection = ops.intersect(newWall.start, newWall.end, other.start, other.end, true)
+			if (!intersection) continue
+			particles.push(new Particle(3, intersection, new Vector(0, 0), 1, true))
+			particles[particles.length - 1].display()
+		}
+		return
+	}
+	// rebuild all intersections only on setup/restart
+	for (let i = 0; i < walls.length; i++) {
+		for (let j = i + 1; j < walls.length; j++) {
+			const intersection = ops.intersect(walls[i].start, walls[i].end, walls[j].start, walls[j].end, true)
+			if (!intersection) continue
+			particles.push(new Particle(3, intersection, new Vector(0, 0), 1, true))
+			particles[particles.length - 1].display()
+		}
+	}
+}
+
+
 function setup() {
 	let cnv = createCanvas(window.innerWidth, window.innerHeight)
 	cnv.id('mycanvas')
 	colorMode(RGB, 255)
 	if (panelOpen) cnv.elt.classList.add('panel-open')
 	handleInteractions()
+	populateIntersections()
 }
 
 function draw() {
@@ -313,6 +385,7 @@ function startSimulation(world) {
 	if (typeof loop === 'function') loop()
 	updatePlayPauseBtn()
 	handleInteractions()
+	populateIntersections()
 }
 function handlePlayPause() {
 	handleInteractions()
@@ -362,6 +435,8 @@ function handleInteractions() {
 		const end = new Vector(e.clientX, e.clientY)
 		walls.push(new Wall(start, end))
 		walls[walls.length - 1].display()
+		populateIntersections(walls[walls.length - 1])
+		
 	})
 	window.addEventListener("keydown", (e) => {
 		if (e.key === " ") {
