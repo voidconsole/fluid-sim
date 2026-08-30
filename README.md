@@ -9,6 +9,7 @@ the result is a successful proof-of-concept: phenomena such as vorticity, pressu
 
 
 find videos, simulations, tests and failures [here](https://drive.google.com/drive/folders/1ESwztzcPn9aTRWIODQ-dJw75UBhIh-h9?usp=sharing). 
+find complete development journal [here](https://github.com/voidconsole/fluid-sim/journal.md)
 
 ## hypothesis
 
@@ -23,7 +24,7 @@ none of these properties were programmed. there is no pressure variable, no temp
 
 this project utilizes and extends my custom collision engine found at [voidconsole/collision](https://github.com/voidconsole/collision).
 
----
+
 
 ## experiments
 
