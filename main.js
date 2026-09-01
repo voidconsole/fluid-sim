@@ -56,7 +56,7 @@ ops = {
 	rotate: (A, theta) => {  // theta must be in radians
 		/* [ cost -sint ] [x]
 		    [ sint  cost ] [y] */
-		     //applying linear transformation of a rotation matrix 
+		//applying linear transformation of a rotation matrix 
 		const cos = Math.cos(theta)
 		const sin = Math.sin(theta)
 		return new Vector(cos * A.x - sin * A.y, sin * A.x + cos * A.y)
@@ -89,21 +89,65 @@ class Vector {
 		this.y = y
 	}
 }
+// class absorber {
+// 	constructor(start, end, size, mass, rate) {
+// 		this.start = start
+// 		this.end = end
+// 		this.position = position
+// 		this.velocity = velocity
+// 		this.size = size
+// 		this.rate = rate
+// 		this.wall = ops.difference(this.end, this.start)
+// 	}
+// 	display() {
+// 		if (typeof stroke !== 'function') return
+// 		stroke(255)
+// 		strokeWeight(1)
+// 		line(this.start.x, this.start.y, this.end.x, this.end.y)
+// 	}
+// 	absorb(particle) {
+// 		if (particle.rigid) return
+// 		if (particle.lastcontact === this) return
+// 		const index = fruits.indexOf('banana'); // Finds the first 'banana' at index 1
 
+// 		if (index !== -1) {
+// 			particles.splice(index, 1); // Removes exactly 1 item at that index
+// 		}
+// 		particles.remove(particle)
+// }
+// }
+// class emitter {
+// 	constructor(start, end, size, mass, rate) {
+// 		this.start = start
+// 		this.end = end
+// 		this.position = position
+// 		this.velocity = velocity
+// 		this.size = size
+// 		this.rate = rate
+// 		this.wall = ops.difference(this.end, this.start)
+// 	}
+// 	display() {
+// 		if (typeof stroke !== 'function') return
+// 		stroke(255)
+// 		strokeWeight(1)
+// 		line(this.start.x, this.start.y, this.end.x, this.end.y)
+// 	}	
+// }
 class Wall {
-	constructor(start, end) {
+	constructor(start, end, anchorSize = anchor) {
 		this.start = start
 		this.end = end
 		this.wall = ops.difference(this.end, this.start)
 		this.direction = ops.unit(this.wall)
 		this.length = ops.magnitude(this.wall)
-		particles.push(new Particle(anchor, this.start, new Vector(0, 0), 1, true))
+		particles.push(new Particle(anchorSize, this.start, new Vector(0, 0), 1, true))
 		particles[particles.length - 1].display()
-		particles.push(new Particle(anchor, this.end, new Vector(0, 0), 1, true))
+		particles.push(new Particle(anchorSize, this.end, new Vector(0, 0), 1, true))
 		particles[particles.length - 1].display()
 	}
 
 	display() {
+		if (typeof stroke !== 'function') return
 		stroke(255)
 		strokeWeight(1)
 		line(this.start.x, this.start.y, this.end.x, this.end.y)
@@ -166,6 +210,7 @@ class Particle {
 		this.skipnext = false
 	}
 	display() {
+		if (typeof noStroke !== 'function') return
 		noStroke()
 		let speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2)
 		const maxSpeed =
@@ -261,7 +306,11 @@ let particles = []
 let walls = []
 let anchor = 4
 let pathdensity = 50
-let pathoffset = { transform: new Vector(500, 100), theta: 10}
+let pathAnchor = 4
+let pathScale = 1
+let pathoffset = { transform: new Vector(window.innerWidth / 2, window.innerHeight / 2), theta: 0 }
+let shapeWalls = []
+let shapeCornerParticles = []
 
 function totalEnergy() {
 	energy = 0
@@ -326,25 +375,25 @@ function triangulate(colliders, contraints) {
 
 function initWalls() {
 	walls = []
-	// renderPath()
-	// if(thisWorld.containX) {
-	// 	walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
-	// 	walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
-	// }
-	// if(thisWorld.containY) {
-	// 	walls.push(new Wall(new Vector(0, -1), new Vector(window.innerWidth, -1)))
-	// 	walls.push(new Wall(new Vector(0, window.innerHeight + 1), new Vector(window.innerWidth, window.innerHeight + 1)))
-	// }
+	if(thisWorld.containX) {
+		walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
+		walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
+	}
+	if(thisWorld.containY) {
+		walls.push(new Wall(new Vector(0, -1), new Vector(window.innerWidth, -1)))
+		walls.push(new Wall(new Vector(0, window.innerHeight + 1), new Vector(window.innerWidth, window.innerHeight + 1)))
+	}
 	handleInteractions()
+	renderPath()
 }
 
 function initParticles() {
 	particles = []
-	// for (let k = 0; k < thisWorld.particleCount; k++) {
-	// 	let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
-	// 	particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
-	// }
-	particles.push(new Particle(30, new Vector(80, 120), new Vector(10, 10), 10))
+	for (let k = 0; k < thisWorld.particleCount; k++) {
+		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
+		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
+	}
+	// particles.push(new Particle(30, new Vector(80, 120), new Vector(10, 10), 10))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 3))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), -12))
 
@@ -414,16 +463,13 @@ function handlePlayPause() {
 	if (isPaused) window.noLoop()
 	else window.loop()
 	updatePlayPauseBtn()
-	// renderPath()
 	console.log("Momentum:" + totalMomentum() + " Energy:", totalEnergy())
 }
 
 function handleRestart() {
 	if (thisWorld) {
 		startSimulation(thisWorld)
-		walls = []
 	}
-	// renderPath()
 }
 
 function updatePlayPauseBtn() {
@@ -440,7 +486,14 @@ function handleInteractions() {
 	interactionsInit = true;
 	let dragged = false
 	let start = null
+	const isUIElement = (target) => !!(target && target.closest && target.closest('#panel, #toggle-btn'))
+
 	window.addEventListener("mousedown", (e) => {
+		if (isUIElement(e.target)) {
+			start = null
+			dragged = false
+			return
+		}
 		start = new Vector(e.clientX, e.clientY)
 		dragged = false
 	})
@@ -448,14 +501,16 @@ function handleInteractions() {
 		dragged = true
 	})
 	window.addEventListener("mouseup", (e) => {
-		if (!dragged) return
+		if (!start || !dragged) { start = null; return }
 		const end = new Vector(e.clientX, e.clientY)
 		walls.push(new Wall(start, end))
 		walls[walls.length - 1].display()
 		populateIntersections(walls[walls.length - 1])
-
+		start = null
 	})
 	window.addEventListener("keydown", (e) => {
+		const tag = (e.target && e.target.tagName) || ""
+		if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return
 		if (e.key === " ") {
 			e.preventDefault()
 			handlePlayPause()
@@ -464,32 +519,67 @@ function handleInteractions() {
 		}
 	});
 }
+
+function getActiveShapeElement() {
+	const imported = document.getElementById("imported-svg-container")
+	if (!imported || imported.childElementCount === 0) return null
+	return imported.querySelector("path, rect, circle, ellipse, line, polyline, polygon")
+}
+
+function clearShapeWalls() {
+	shapeWalls.forEach(w => {
+		const wi = walls.indexOf(w)
+		if (wi !== -1) walls.splice(wi, 1)
+	})
+	shapeCornerParticles.forEach(p => {
+		const pi = particles.indexOf(p)
+		if (pi !== -1) particles.splice(pi, 1)
+	})
+	shapeWalls = []
+	shapeCornerParticles = []
+}
+
 function renderPath() {
-	let offset = pathoffset
-	// theta in degrees
-	pathoffset.theta = pathoffset.theta % 360
-	pathoffset.theta *= Math.PI / 180
+	clearShapeWalls()
 
-	const path = document.querySelector("#myPath")
+	const path = getActiveShapeElement()
+	if (!path || typeof path.getTotalLength !== "function") return
+
+	const thetaRad = (pathoffset.theta % 360) * Math.PI / 180
 	const length = path.getTotalLength()
-	const points = []
-	const resolution = pathdensity;
-	let lineStart = null // start of straight
-	let lastPoint = null 
+	const resolution = pathdensity
+	const scale = pathScale
 
+	const rawPoints = []
+	let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
 	for (let i = 0; i <= resolution; i++) {
 		const p = path.getPointAtLength((i / resolution) * length)
 		if (isNaN(p.x) || isNaN(p.y)) continue
-		const current = new Vector(p.x , p.y)
-		current.rotate(offset.theta)
-		current.add(offset.transform)
-		
+		rawPoints.push(p)
+		if (p.x < minX) minX = p.x
+		if (p.x > maxX) maxX = p.x
+		if (p.y < minY) minY = p.y
+		if (p.y > maxY) maxY = p.y
+	}
+	if (rawPoints.length === 0) return
+	const centerX = (minX + maxX) / 2
+	const centerY = (minY + maxY) / 2
+
+	const points = []
+	let lineStart = null
+	let lastPoint = null
+
+	for (const p of rawPoints) {
+		const current = new Vector((p.x - centerX) * scale, (p.y - centerY) * scale)
+		current.rotate(thetaRad)
+		current.add(pathoffset.transform)
+
 		if (!lineStart) {
 			lineStart = current
 			points.push(current)
 			lastPoint = current
 			continue
-		}if (points.length === 1) {
+		} if (points.length === 1) {
 			points.push(current)
 			lastPoint = current
 			continue
@@ -500,7 +590,7 @@ function renderPath() {
 		const angle1 = Math.atan2(v1.y, v1.x)
 		const angle2 = Math.atan2(v2.y, v2.x)
 
-		if (Math.abs(angle1 - angle2 ) < 0.01) {
+		if (Math.abs(angle1 - angle2) < 0.01) {
 			points[points.length - 1] = current
 		} else {
 			lineStart = lastPoint
@@ -508,11 +598,19 @@ function renderPath() {
 		}
 		lastPoint = current
 	}
+
+	function addShapeWall(a, b) {
+		const w = new Wall(a, b, pathAnchor)
+		walls.push(w)
+		shapeWalls.push(w)
+		shapeCornerParticles.push(...particles.slice(-2))
+	}
+
 	for (let i = 0; i < points.length - 1; i++) {
-		walls.push(new Wall(points[i], points[i + 1]))
+		addShapeWall(points[i], points[i + 1])
 	}
 	if (points.length > 2) {
-		walls.push(new Wall(points[points.length - 1], points[0]))
+		addShapeWall(points[points.length - 1], points[0])
 	}
 }
 
@@ -529,4 +627,3 @@ setInterval(() => {
 		prevCollisions = collisions
 	}
 }, 120)
-

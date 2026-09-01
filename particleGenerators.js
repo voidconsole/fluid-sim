@@ -1,5 +1,5 @@
 class World {
-	constructor(particleCount, particleGenerator, containX = true, containY = true, trail = 0, frameRate = 30) {
+	constructor(particleCount, particleGenerator, constraint = true, containY = true, trail = 0, frameRate = 30) {
 		this.particleCount = particleCount;
 		this.particleGenerator = particleGenerator;
 		this.containX = containX;

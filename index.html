@@ -12,8 +12,6 @@
         <link rel="stylesheet" href="styles.css" />
     </head>
     <body>
-
-
         <button id="toggle-btn" onclick="togglePanel()" title="Open Controls">
             <svg
                 width="18"
@@ -31,18 +29,13 @@
                 />
             </svg>
         </button>
-	<svg id="shape" style="display:none; position: absolute; top: 500px; left: 500px;" width="300" height="300" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <path id="myPath" d="M120,40 
-           h100 
-           a20,20 0 0 1 20,20 
-           v80 
-           a20,20 0 0 1 -20,20 
-           h-160 
-           q-20,0 -12,-16 
-           L92,56 
-           q8,-16 28,-16 z" 
-        fill="#FF6B6B" />
-</svg>
+        <div id="imported-svg-container"></div>
+        <input
+            type="file"
+            id="svg-file-input"
+            accept=".svg,image/svg+xml"
+            onchange="handleSvgImport(event)"
+        />
         <div id="panel">
             <div class="panel-inner">
                 <div class="panel-header">
@@ -90,12 +83,32 @@
                         class="create-custom-btn"
                         onclick="createCustomGenerator()"
                     >
-                        <span class="plus-icon">＋</span>
+                        <span class="plus-icon">+</span>
                         Create Custom Generator
                     </button>
 
+                    <div class="controls-row svg-import-row">
+                        <button
+                            class="create-custom-btn"
+                            id="svg-import-btn"
+                            onclick="triggerSvgImport()"
+                        >
+                            <span class="plus-icon"> + </span>
+                            <span id="svg-import-label">Import SVG</span>
+                        </button>
+                        <button
+                            class="btn"
+                            id="svg-clear-btn"
+                            onclick="clearSvgImport()"
+                        >
+                            Clear
+                        </button>
+                    </div>
+
                     <div class="section-label">Experiments</div>
-                    <div class="gen-list" id="gen-list"></div>
+                    <div class="gen-list-wrap">
+                        <div class="gen-list" id="gen-list"></div>
+                    </div>
 
                     <div class="divider"></div>
 
@@ -142,7 +155,117 @@
                         <div class="error-box" id="error-box"></div>
                     </div>
 
-                    <div class="speed-legend">
+                    <div class="slider-section" id="shape-section">
+                        <div class="divider"></div>
+                        <div class="section-label">Shape</div>
+                        <div class="experiment-desc">
+                            Controls apply to the imported svg's walls only
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-density" class="speed-label"
+                                >Path density</label
+                            >
+                            <input
+                                id="shape-density"
+                                class="range-slider"
+                                type="range"
+                                min="2"
+                                max="400"
+                                step="1"
+                                value="50"
+                            />
+                            <span id="shape-density-value" class="speed-value"
+                                >50</span
+                            >
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-size" class="speed-label"
+                                >Size</label
+                            >
+                            <input
+                                id="shape-size"
+                                class="range-slider"
+                                type="range"
+                                min="10"
+                                max="300"
+                                step="1"
+                                value="100"
+                            />
+                            <span id="shape-size-value" class="speed-value"
+                                >100%</span
+                            >
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-anchor" class="speed-label"
+                                >Anchor size</label
+                            >
+                            <input
+                                id="shape-anchor"
+                                class="range-slider"
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value="4"
+                            />
+                            <span id="shape-anchor-value" class="speed-value"
+                                >4</span
+                            >
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-x" class="speed-label"
+                                >X offset</label
+                            >
+                            <input
+                                id="shape-x"
+                                class="range-slider"
+                                type="range"
+                                min="0"
+                                max="1920"
+                                step="1"
+                                value="960"
+                            />
+                            <span id="shape-x-value" class="speed-value"
+                                >960</span
+                            >
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-y" class="speed-label"
+                                >Y offset</label
+                            >
+                            <input
+                                id="shape-y"
+                                class="range-slider"
+                                type="range"
+                                min="0"
+                                max="1080"
+                                step="1"
+                                value="540"
+                            />
+                            <span id="shape-y-value" class="speed-value"
+                                >540</span
+                            >
+                        </div>
+                        <div class="speed-row">
+                            <label for="shape-theta" class="speed-label"
+                                >Angle θ</label
+                            >
+                            <input
+                                id="shape-theta"
+                                class="range-slider"
+                                type="range"
+                                min="-180"
+                                max="180"
+                                step="1"
+                                value="0"
+                            />
+                            <span id="shape-theta-value" class="speed-value"
+                                >0</span
+                            >
+                        </div>
+                    </div>
+
+                    <div class="slider-section">
                         <div class="divider"></div>
                         <div class="section-label">Speed</div>
                         <div class="experiment-desc">
@@ -154,6 +277,7 @@
                             >
                             <input
                                 id="max-speed"
+                                class="range-slider"
                                 type="range"
                                 min="1"
                                 max="60"

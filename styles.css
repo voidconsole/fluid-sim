@@ -143,10 +143,33 @@ canvas {
     margin-bottom: 12px;
 }
 
+.svg-import-row {
+    margin-bottom: 12px;
+}
+.svg-import-row .create-custom-btn {
+    flex: 1;
+    margin-bottom: 0;
+}
+#svg-clear-btn {
+    display: none;
+    flex-shrink: 0;
+}
+#svg-file-input {
+    display: none;
+}
+#imported-svg-container {
+    display: none;
+}
+
+.gen-list-wrap {
+    position: relative;
+}
 .gen-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-height: 285px;
+    overflow-y: auto;
 }
 .gen-item {
     display: flex;
@@ -239,23 +262,29 @@ canvas {
     transform: rotate(180deg);
 }
 
-.speed-legend {
+.slider-section {
     margin-top: 12px;
 }
-.speed-legend .speed-row {
+.slider-section .speed-row {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-top: 6px;
 }
-#max-speed {
+#shape-section {
+    display: none;
+}
+#shape-section.visible {
+    display: block;
+}
+.range-slider {
     flex: 1;
     height: 6px;
     background: rgba(255, 255, 255, 0.06);
     border-radius: 6px;
     appearance: none;
 }
-#max-speed::-webkit-slider-thumb {
+.range-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
@@ -263,14 +292,14 @@ canvas {
     background: rgba(80, 80, 86, 0.9);
     border: none;
 }
-#max-speed::-moz-range-thumb {
+.range-slider::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
     background: rgba(80, 80, 86, 0.9);
     border: none;
 }
-#max-speed:focus {
+.range-slider:focus {
     outline: none;
 }
 .speed-label {
@@ -284,8 +313,8 @@ canvas {
     color: var(--muted);
 }
 
-/* Scrollbar styling: dark grey thumb, transparent track */
-/* WebKit browsers (Chrome, Edge, Safari) */
+/* sscrollbar styling: dark grey thumb, transparent track */
+
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -303,8 +332,8 @@ canvas {
     background: rgba(80, 80, 86, 0.85);
 }
 
-/* Firefox */
+
 * {
     scrollbar-width: thin;
     scrollbar-color: rgba(80, 80, 86, 0.6) transparent;
-}
+}	

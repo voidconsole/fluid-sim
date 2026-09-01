@@ -240,6 +240,7 @@ let selectedGenId = null;
 let originalCode = '';
 let isCustomMode = false;
 let codeModified = false;
+let importedSvgName = null;
 
 function renderGenList() {
 	const list = document.getElementById('gen-list');
@@ -282,6 +283,58 @@ function createCustomGenerator() {
 	originalCode = CUSTOM_TEMPLATE;
 	openEditor('Custom Generator', CUSTOM_TEMPLATE, false, true);
 	renderGenList();
+}
+
+function triggerSvgImport() {
+	const input = document.getElementById('svg-file-input');
+	if (input) input.click();
+}
+
+function handleSvgImport(event) {
+	const file = event.target.files && event.target.files[0];
+	if (!file) return;
+
+	const reader = new FileReader();
+	reader.onload = () => {
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(reader.result, 'image/svg+xml');
+		const svgEl = doc.querySelector('svg');
+
+		if (!svgEl || doc.querySelector('parsererror')) {
+			showError('could not read that svg file');
+			event.target.value = '';
+			return;
+		}
+
+		const container = document.getElementById('imported-svg-container');
+		container.innerHTML = '';
+		container.appendChild(svgEl);
+
+		importedSvgName = file.name;
+		document.getElementById('svg-import-label').textContent = importedSvgName;
+		document.getElementById('svg-clear-btn').style.display = 'inline-flex';
+		document.getElementById('shape-section').classList.add('visible');
+
+		pathoffset.transform.x = window.innerWidth / 2;
+		pathoffset.transform.y = window.innerHeight / 2;
+		syncShapeSliders();
+
+		if (typeof renderPath === 'function') renderPath();
+		event.target.value = '';
+	};
+	reader.readAsText(file);
+}
+
+function clearSvgImport() {
+	const container = document.getElementById('imported-svg-container');
+	if (container) container.innerHTML = '';
+
+	importedSvgName = null;
+	document.getElementById('svg-import-label').textContent = 'Import SVG';
+	document.getElementById('svg-clear-btn').style.display = 'none';
+	document.getElementById('shape-section').classList.remove('visible');
+
+	if (typeof renderPath === 'function') renderPath();
 }
 
 function openEditor(title, code, modified = false, isCustom = false) {
@@ -375,6 +428,99 @@ function togglePanel() {
 	document.getElementById('mycanvas').classList.toggle('panel-open', panelOpen);
 }
 
+function syncShapeSliders() {
+	const density = document.getElementById('shape-density');
+	const densityVal = document.getElementById('shape-density-value');
+	const sizeSlider = document.getElementById('shape-size');
+	const sizeVal = document.getElementById('shape-size-value');
+	const anchorSlider = document.getElementById('shape-anchor');
+	const anchorVal = document.getElementById('shape-anchor-value');
+	const xSlider = document.getElementById('shape-x');
+	const xVal = document.getElementById('shape-x-value');
+	const ySlider = document.getElementById('shape-y');
+	const yVal = document.getElementById('shape-y-value');
+	const thetaSlider = document.getElementById('shape-theta');
+	const thetaVal = document.getElementById('shape-theta-value');
+
+	if (!density || !sizeSlider || !anchorSlider || !xSlider || !ySlider || !thetaSlider) return;
+
+	xSlider.max = window.innerWidth;
+	ySlider.max = window.innerHeight;
+
+	density.value = pathdensity;
+	densityVal.textContent = pathdensity;
+
+	sizeSlider.value = Math.round(pathScale * 100);
+	sizeVal.textContent = Math.round(pathScale * 100) + '%';
+
+	anchorSlider.value = pathAnchor;
+	anchorVal.textContent = pathAnchor;
+
+	xSlider.value = pathoffset.transform.x;
+	xVal.textContent = Math.round(pathoffset.transform.x);
+	ySlider.value = pathoffset.transform.y;
+	yVal.textContent = Math.round(pathoffset.transform.y);
+	thetaSlider.value = pathoffset.theta;
+	thetaVal.textContent = pathoffset.theta;
+}
+
+function bindShapeControls() {
+	const density = document.getElementById('shape-density');
+	const densityVal = document.getElementById('shape-density-value');
+	const sizeSlider = document.getElementById('shape-size');
+	const sizeVal = document.getElementById('shape-size-value');
+	const anchorSlider = document.getElementById('shape-anchor');
+	const anchorVal = document.getElementById('shape-anchor-value');
+	const xSlider = document.getElementById('shape-x');
+	const xVal = document.getElementById('shape-x-value');
+	const ySlider = document.getElementById('shape-y');
+	const yVal = document.getElementById('shape-y-value');
+	const thetaSlider = document.getElementById('shape-theta');
+	const thetaVal = document.getElementById('shape-theta-value');
+
+	if (!density || !sizeSlider || !anchorSlider || !xSlider || !ySlider || !thetaSlider) return;
+
+	syncShapeSliders();
+	window.addEventListener('resize', syncShapeSliders);
+
+	density.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 2;
+		pathdensity = v;
+		densityVal.textContent = v;
+		if (typeof renderPath === 'function') renderPath();
+	});
+	sizeSlider.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 100;
+		pathScale = v / 100;
+		sizeVal.textContent = v + '%';
+		if (typeof renderPath === 'function') renderPath();
+	});
+	anchorSlider.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 0;
+		pathAnchor = v;
+		anchorVal.textContent = v;
+		if (typeof renderPath === 'function') renderPath();
+	});
+	xSlider.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 0;
+		pathoffset.transform.x = v;
+		xVal.textContent = v;
+		if (typeof renderPath === 'function') renderPath();
+	});
+	ySlider.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 0;
+		pathoffset.transform.y = v;
+		yVal.textContent = v;
+		if (typeof renderPath === 'function') renderPath();
+	});
+	thetaSlider.addEventListener('input', (e) => {
+		const v = Number(e.target.value) || 0;
+		pathoffset.theta = v;
+		thetaVal.textContent = v;
+		if (typeof renderPath === 'function') renderPath();
+	});
+}
+
 window.addEventListener('DOMContentLoaded', () => {
 	// default max speed for coloring
 	if (typeof window.maxParticleSpeed === 'undefined') window.maxParticleSpeed = 15;
@@ -406,4 +552,6 @@ window.addEventListener('DOMContentLoaded', () => {
 			valEl.textContent = v;
 		});
 	}
+
+	bindShapeControls();
 });
