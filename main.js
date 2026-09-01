@@ -52,6 +52,14 @@ ops = {
 			B1.x + weight * (B2.x - B1.x),
 			B1.y + weight * (B2.y - B1.y)
 		)
+	},
+	rotate: (A, theta) => {  // theta must be in radians
+		/* [ cost -sint ] [x]
+		    [ sint  cost ] [y] */
+		     //applying linear transformation of a rotation matrix 
+		const cos = Math.cos(theta)
+		const sin = Math.sin(theta)
+		return new Vector(cos * A.x - sin * A.y, sin * A.x + cos * A.y)
 	}
 }
 
@@ -72,6 +80,14 @@ class Vector {
 		this.x *= s
 		this.y *= s
 	}
+	rotate(theta) {
+		const cos = Math.cos(theta)
+		const sin = Math.sin(theta)
+		let x = cos * this.x - sin * this.y
+		let y = sin * this.x + cos * this.y
+		this.x = x
+		this.y = y
+	}
 }
 
 class Wall {
@@ -81,9 +97,9 @@ class Wall {
 		this.wall = ops.difference(this.end, this.start)
 		this.direction = ops.unit(this.wall)
 		this.length = ops.magnitude(this.wall)
-		particles.push(new Particle(3, this.start, new Vector(0, 0), 1, true))
+		particles.push(new Particle(anchor, this.start, new Vector(0, 0), 1, true))
 		particles[particles.length - 1].display()
-		particles.push(new Particle(3, this.end, new Vector(0, 0), 1, true))
+		particles.push(new Particle(anchor, this.end, new Vector(0, 0), 1, true))
 		particles[particles.length - 1].display()
 	}
 
@@ -243,6 +259,9 @@ let collisions = 0
 let isPaused = false
 let particles = []
 let walls = []
+let anchor = 4
+let pathdensity = 50
+let pathoffset = { transform: new Vector(500, 100), theta: 10}
 
 function totalEnergy() {
 	energy = 0
@@ -284,7 +303,7 @@ function triangulate(colliders, contraints) {
 
 	for (let i = 0; i < colliders.length; i++) {
 		if (colliders[i].rigid) continue
-		if (colliders[i].skipnext){colliders[i].skipnext = false;  continue}
+		if (colliders[i].skipnext) { colliders[i].skipnext = false; continue }
 		colliders[i].move()
 	}
 	for (let i = 0; i < colliders.length; i++) {
@@ -307,6 +326,7 @@ function triangulate(colliders, contraints) {
 
 function initWalls() {
 	walls = []
+	// renderPath()
 	// if(thisWorld.containX) {
 	// 	walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
 	// 	walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
@@ -320,11 +340,11 @@ function initWalls() {
 
 function initParticles() {
 	particles = []
-	for (let k = 0; k < thisWorld.particleCount; k++) {
-		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
-		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
-	}
-	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 10))
+	// for (let k = 0; k < thisWorld.particleCount; k++) {
+	// 	let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
+	// 	particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
+	// }
+	particles.push(new Particle(30, new Vector(80, 120), new Vector(10, 10), 10))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 3))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), -12))
 
@@ -342,7 +362,7 @@ function populateIntersections(newWall) {
 			if (other === newWall) continue
 			const intersection = ops.intersect(newWall.start, newWall.end, other.start, other.end, true)
 			if (!intersection) continue
-			particles.push(new Particle(3, intersection, new Vector(0, 0), 1, true))
+			particles.push(new Particle(anchor, intersection, new Vector(0, 0), 1, true))
 			particles[particles.length - 1].display()
 		}
 		return
@@ -352,7 +372,7 @@ function populateIntersections(newWall) {
 		for (let j = i + 1; j < walls.length; j++) {
 			const intersection = ops.intersect(walls[i].start, walls[i].end, walls[j].start, walls[j].end, true)
 			if (!intersection) continue
-			particles.push(new Particle(3, intersection, new Vector(0, 0), 1, true))
+			particles.push(new Particle(anchor, intersection, new Vector(0, 0), 1, true))
 			particles[particles.length - 1].display()
 		}
 	}
@@ -366,6 +386,7 @@ function setup() {
 	if (panelOpen) cnv.elt.classList.add('panel-open')
 	handleInteractions()
 	populateIntersections()
+	renderPath()
 }
 
 function draw() {
@@ -393,6 +414,7 @@ function handlePlayPause() {
 	if (isPaused) window.noLoop()
 	else window.loop()
 	updatePlayPauseBtn()
+	// renderPath()
 	console.log("Momentum:" + totalMomentum() + " Energy:", totalEnergy())
 }
 
@@ -401,6 +423,7 @@ function handleRestart() {
 		startSimulation(thisWorld)
 		walls = []
 	}
+	// renderPath()
 }
 
 function updatePlayPauseBtn() {
@@ -410,12 +433,6 @@ function updatePlayPauseBtn() {
 function windowResized() {
 	resizeCanvas(window.innerWidth, window.innerHeight)
 }
-
-function svgHandler(svgObject) {
-	let path = svg.Object(svgObject).select('path')
-}
-
-
 
 let interactionsInit = false;
 function handleInteractions() {
@@ -436,7 +453,7 @@ function handleInteractions() {
 		walls.push(new Wall(start, end))
 		walls[walls.length - 1].display()
 		populateIntersections(walls[walls.length - 1])
-		
+
 	})
 	window.addEventListener("keydown", (e) => {
 		if (e.key === " ") {
@@ -446,6 +463,57 @@ function handleInteractions() {
 			handleRestart()
 		}
 	});
+}
+function renderPath() {
+	let offset = pathoffset
+	// theta in degrees
+	pathoffset.theta = pathoffset.theta % 360
+	pathoffset.theta *= Math.PI / 180
+
+	const path = document.querySelector("#myPath")
+	const length = path.getTotalLength()
+	const points = []
+	const resolution = pathdensity;
+	let lineStart = null // start of straight
+	let lastPoint = null 
+
+	for (let i = 0; i <= resolution; i++) {
+		const p = path.getPointAtLength((i / resolution) * length)
+		if (isNaN(p.x) || isNaN(p.y)) continue
+		const current = new Vector(p.x , p.y)
+		current.rotate(offset.theta)
+		current.add(offset.transform)
+		
+		if (!lineStart) {
+			lineStart = current
+			points.push(current)
+			lastPoint = current
+			continue
+		}if (points.length === 1) {
+			points.push(current)
+			lastPoint = current
+			continue
+		}
+
+		const v1 = ops.difference(lastPoint, lineStart)
+		const v2 = ops.difference(current, lastPoint)
+		const angle1 = Math.atan2(v1.y, v1.x)
+		const angle2 = Math.atan2(v2.y, v2.x)
+
+		if (Math.abs(angle1 - angle2 ) < 0.01) {
+			points[points.length - 1] = current
+		} else {
+			lineStart = lastPoint
+			points.push(current)
+		}
+		lastPoint = current
+	}
+	for (let i = 0; i < points.length - 1; i++) {
+		walls.push(new Wall(points[i], points[i + 1]))
+	}
+	if (points.length > 2) {
+		walls.push(new Wall(points[points.length - 1], points[0]))
+	}
 }
 
 
