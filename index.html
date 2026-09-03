@@ -115,15 +115,16 @@
                     <div class="editor-section" id="editor-section">
                         <div class="editor-header">
                             <span class="editor-title"
-                                >Editing
-                                <span id="editor-gen-name">—</span></span
+                                >Editing <span id="editor-gen-name"></span
+                            ></span>
+                            <button
+                                type="button"
+                                class="editor-help-link"
+                                id="help-link"
+                                onclick="openHelpModal()"
                             >
-                            <span
-                                class="editor-modified-badge"
-                                id="modified-badge"
-                            >
-                                - modified</span
-                            >
+                                Help me
+                            </button>
                         </div>
 
                         <textarea
@@ -159,7 +160,7 @@
                         <div class="divider"></div>
                         <div class="section-label">Shape</div>
                         <div class="experiment-desc">
-                            Controls apply to the imported svg's walls only
+                            Control properties of imported shape
                         </div>
                         <div class="speed-row">
                             <label for="shape-density" class="speed-label"
@@ -289,6 +290,184 @@
                             >
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="modal-overlay"
+            id="help-modal-overlay"
+            onclick="handleHelpOverlayClick(event)"
+        >
+            <div
+                class="modal-box"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="help-modal-title"
+            >
+                <button
+                    type="button"
+                    class="modal-close"
+                    onclick="closeHelpModal()"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+                <h2 class="modal-title" id="help-modal-title">
+                    How the code editor works
+                </h2>
+
+                <div class="modal-body">
+                    <section class="modal-section">
+                        <h3>The particle generator</h3>
+                        <p>
+                            A generator is a function called once per particle
+                            when a world starts, i.e.
+                            <code>function myGenerator(index) { ... }</code>. It
+                            must
+                            <code>return [size, position, velocity, mass]</code>
+                            : those 4 values, in that order, for every particle.
+                            <code>index</code> is the position of the particle
+                            currently being created (0, 1, 2, …), handy for
+                            splitting particles into groups or spacing them out.
+                            These parameters can be used to generate any
+                            configuration of particles you want.
+                        </p>
+                    </section>
+
+                    <section class="modal-section">
+                        <h3>Vectors, position &amp; velocity</h3>
+                        <p>
+                            <code>new Vector(x, y)</code> : the first argument
+                            is always x, the second is always y.
+                            <code>position</code> is where the particle starts.
+                            <code>velocity</code> is added to the particle's
+                            position every single frame, so think of it as
+                            "pixels moved per frame", not a real-world speed
+                            unit.
+                        </p>
+                    </section>
+
+                    <section class="modal-section">
+                        <h3>Useful locals</h3>
+                        <p>
+                            <code>rnd()</code>, <code>w</code> and
+                            <code>h</code> are not built into the language,
+                            instead, each generator defines them itself at the
+                            top, usually as
+                            <code>let rnd = () => Math.random()</code>,
+                            <code>let w = window.innerWidth</code> and
+                            <code>let h = window.innerHeight</code>. Feel free
+                            to change or drop them.
+                        </p>
+                    </section>
+
+                    <section class="modal-section">
+                        <h3>Walls</h3>
+                        <p>
+                            A <code>wallGenerator(index)</code> function works
+                            like the particle generator but for straight wall
+                            segments: it's called <code>wallCount</code> times
+                            and must return <code>[start, end]</code> or
+                            <code>[start, end, anchorSize]</code> : two Vectors
+                            for the wall's endpoints, and an optional
+                            anchor-point size for the third value. The anchor
+                            point is a rigid particle added at the wall's
+                            endpoints and intersections,
+                        </p>
+                    </section>
+
+                    <section class="modal-section">
+                        <h3>The World constructor</h3>
+                        <p>
+                            <code
+                                >new World(particleCount, particleGenerator,
+                                constrainX, constrainY, trail, wallCount,
+                                wallGenerator, shape, frameRate)</code
+                            >
+                        </p>
+                        <ul>
+                            <li>
+                                <code>particleCount</code> : how many times the
+                                generator runs at startup.
+                            </li>
+                            <li>
+                                <code>particleGenerator</code> : your function
+                                from above.
+                            </li>
+                            <li>
+                                <code>constrainX</code> /
+                                <code>constrainY</code> : see "Constraining each
+                                side" below.
+                            </li>
+                            <li>
+                                <code>trail</code> : trail length in pixels; 0
+                                disables trails.
+                            </li>
+                            <li>
+                                <code>wallCount</code> /
+                                <code>wallGenerator</code> : how many explicit
+                                interior walls to build, and the function that
+                                generates them.
+                            </li>
+                            <li>
+                                <code>shape</code> : optional. A URL to an
+                                <code>.svg</code> file, or an inline
+                                <code>"&lt;svg&gt;...&lt;/svg&gt;"</code>
+                                string, to auto-import as walls the moment this
+                                world starts : exactly like using the "Import
+                                SVG" button by hand.
+                            </li>
+                            <li>
+                                <code>frameRate</code> : simulation speed in
+                                frames per second (default 30).
+                            </li>
+                        </ul>
+                    </section>
+
+                    <section class="modal-section">
+                        <h3>Constraining each side</h3>
+                        <p>
+                            <code>constrainX</code> controls the left and right
+                            edges; <code>constrainY</code> controls top and
+                            bottom. Each accepts:
+                        </p>
+                        <ul>
+                            <li>
+                                <code>"reflect"</code> : bounces particles back
+                                in, like a wall.
+                            </li>
+                            <li>
+                                <code>"wrap"</code> : particles exiting one edge
+                                reappear on the opposite edge.
+                            </li>
+                            <li>
+                                <code>"absorb"</code> : particles that reach the
+                                edge are deleted.
+                            </li>
+                            <li>
+                                an emit object :
+                                <code
+                                    >{ size, mass, velocity, rate, capacity
+                                    }</code
+                                >
+                                : spawns new particles inward from that edge at
+                                a random point along it, at
+                                <code>rate</code> particles/second, until
+                                <code>capacity</code> have been emitted.
+                            </li>
+                        </ul>
+                        <p>
+                            To give each of the 4 edges its own setting, pass an
+                            object instead of a single value:
+                            <code>constrainX = { left: ..., right: ... }</code>
+                            and
+                            <code>constrainY = { top: ..., bottom: ... }</code>.
+                            Any value you'd normally use for the whole axis (a
+                            string or an emit object) works as a per-side value
+                            too.
+                        </p>
+                    </section>
                 </div>
             </div>
         </div>

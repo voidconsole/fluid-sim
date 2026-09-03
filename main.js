@@ -197,6 +197,8 @@ class Wall {
 
 	}
 }
+
+
 class Particle {
 	constructor(size, position, velocity, mass = 1, rigid = false, trail = [null, null]) {
 		this.radius = size / 2
@@ -227,23 +229,19 @@ class Particle {
 		ellipse(this.position.x, this.position.y, this.size, this.size)
 	}
 	move() {
-		if (this.position.x >= width) {
+		if (this.position.x > width) {
 			this.lastcontact = null
-			if (thisWorld.containX) this.velocity.x = -this.velocity.x
-			else this.position.x = 0
-		} else if (this.position.x <= 0) {
+			applyConstraint(this, getConstraintFor("right"), "x", 0)
+		} else if (this.position.x < 0) {
 			this.lastcontact = null
-			if (thisWorld.containX) this.velocity.x = -this.velocity.x
-			else this.position.x = width
+			applyConstraint(this, getConstraintFor("left"), "x", width)
 		}
-		if (this.position.y >= height) {
+		if (this.position.y > height) {
 			this.lastcontact = null
-			if (thisWorld.containY) this.velocity.y = -this.velocity.y
-			else this.position.y = 0
-		} else if (this.position.y <= 0) {
+			applyConstraint(this, getConstraintFor("bottom"), "y", 0)
+		} else if (this.position.y < 0) {
 			this.lastcontact = null
-			if (thisWorld.containY) this.velocity.y = -this.velocity.y
-			else this.position.y = height
+			applyConstraint(this, getConstraintFor("top"), "y", height)
 		}
 		if (this.trail[0] !== null && this.trail[1] !== null) {
 			this.trail[0] = new Vector(this.position.x, this.position.y)
@@ -302,6 +300,7 @@ class Particle {
 let thisWorld = null
 let collisions = 0
 let isPaused = false
+let worldLoading = false
 let particles = []
 let walls = []
 let anchor = 4
@@ -311,6 +310,7 @@ let pathScale = 1
 let pathoffset = { transform: new Vector(window.innerWidth / 2, window.innerHeight / 2), theta: 0 }
 let shapeWalls = []
 let shapeCornerParticles = []
+// let emit = thisWorld.constrainX 
 
 function totalEnergy() {
 	energy = 0
@@ -344,6 +344,7 @@ function triangulate(colliders, contraints) {
 	// 	}
 	// }
 
+	handleEmitters(colliders)
 	for (let i = 0; i < colliders.length; i++) {
 		contraints.forEach((constraint) => {
 			constraint.bounce(colliders[i])
@@ -354,6 +355,13 @@ function triangulate(colliders, contraints) {
 		if (colliders[i].rigid) continue
 		if (colliders[i].skipnext) { colliders[i].skipnext = false; continue }
 		colliders[i].move()
+	}
+	if (toRemove.length) {
+		const removeSet = new Set(toRemove) // using temp list to not mutate colliders when  iterating
+		for (let i = colliders.length - 1; i >= 0; i--) {
+			if (removeSet.has(colliders[i])) colliders.splice(i, 1)
+		}
+		toRemove.length = 0
 	}
 	for (let i = 0; i < colliders.length; i++) {
 		for (let j = i + 1; j < colliders.length; j++) {
@@ -375,14 +383,22 @@ function triangulate(colliders, contraints) {
 
 function initWalls() {
 	walls = []
-	if(thisWorld.containX) {
-		walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
-		walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
+	// if(thisWorld.containX) {
+	// 	walls.push(new Wall(new Vector(-1, 0), new Vector(-1, window.innerHeight)))
+	// 	walls.push(new Wall(new Vector(window.innerWidth + 1, 0), new Vector(window.innerWidth + 1, window.innerHeight)))
+	// }
+	// if(thisWorld.containY) {
+	// 	walls.push(new Wall(new Vector(0, -1), new Vector(window.innerWidth, -1)))
+	// 	walls.push(new Wall(new Vector(0, window.innerHeight + 1), new Vector(window.innerWidth, window.innerHeight + 1)))
+	// }
+	if (thisWorld.wallCount && thisWorld.wallGenerator) {
+		for (let k = 0; k < thisWorld.wallCount; k++) {
+			let [start, end, anchorSize] = thisWorld.wallGenerator(k)
+			walls.push(new Wall(start, end, anchorSize))
+		}
 	}
-	if(thisWorld.containY) {
-		walls.push(new Wall(new Vector(0, -1), new Vector(window.innerWidth, -1)))
-		walls.push(new Wall(new Vector(0, window.innerHeight + 1), new Vector(window.innerWidth, window.innerHeight + 1)))
-	}
+	refillEmitter(thisWorld.constrainX)
+	refillEmitter(thisWorld.constrainY)
 	handleInteractions()
 	renderPath()
 }
@@ -440,22 +456,47 @@ function setup() {
 
 function draw() {
 	background(4, 8, 12)
-	if (!thisWorld) return
+	if (!thisWorld || worldLoading) return
 	triangulate(particles, walls)
 }
 
 function startSimulation(world) {
 	console.log("Warning: Momentum will not be conserved if walls are enabled")
+	const changingWorld = thisWorld !== world
+	if (changingWorld) {
+		clearShapeWalls()
+		const imported = document.getElementById("imported-svg-container")
+		if (imported) imported.innerHTML = ""
+		const label = document.getElementById("svg-import-label")
+		if (label) label.textContent = "No SVG selected"
+		const clearBtn = document.getElementById("svg-clear-btn")
+		if (clearBtn) clearBtn.style.display = "none"
+		const section = document.getElementById("shape-section")
+		if (section) section.classList.remove("visible")
+	}
 	thisWorld = world
 	collisions = 0
 	isPaused = false
-	initWalls()
-	initParticles()
-	if (typeof frameRate === 'function') frameRate(thisWorld.frameRate || 30)
-	if (typeof loop === 'function') loop()
-	updatePlayPauseBtn()
-	handleInteractions()
-	populateIntersections()
+	worldLoading = true
+	Promise.resolve()
+		.then(() => loadWorldSvgShape(world))
+		.catch((e) => { console.warn("svg load failed:", e) }) 
+		.then(() => {
+			console.log("World loaded:", world)
+			if (thisWorld !== world) return // a diff world was selected before loading
+			try {
+				initWalls()
+				initParticles()
+				if (typeof frameRate === 'function') frameRate(thisWorld.frameRate || 30)
+				if (typeof loop === 'function') loop()
+				updatePlayPauseBtn()
+				handleInteractions()
+				populateIntersections()
+				renderPath()
+			} finally {
+				worldLoading = false
+			}
+		})
 }
 function handlePlayPause() {
 	handleInteractions()
@@ -510,7 +551,7 @@ function handleInteractions() {
 	})
 	window.addEventListener("keydown", (e) => {
 		const tag = (e.target && e.target.tagName) || ""
-		if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return
+		if (tag === "TEXTAREA" || (e.target && e.target.isContentEditable)) return
 		if (e.key === " ") {
 			e.preventDefault()
 			handlePlayPause()
@@ -519,6 +560,98 @@ function handleInteractions() {
 		}
 	});
 }
+
+// window constraints handling
+
+let toRemove = [] // store the dead
+
+function getConstraintFor(side) {
+	if (!thisWorld) return "reflect"
+	const axisValue = (side === "left" || side === "right") ? thisWorld.constrainX : thisWorld.constrainY
+	if (typeof axisValue === "string") return axisValue
+	if (axisValue && typeof axisValue === "object") {
+		if (Object.prototype.hasOwnProperty.call(axisValue, side)) return axisValue[side]//pick common or specific axis
+		return axisValue
+	}
+	return "reflect"
+}
+
+function applyConstraint(particle, constraint, axis, wrapTarget) {
+	if (constraint && typeof constraint === "object") {
+		toRemove.push(particle) //emitter  also absorbs particles
+		return
+	}
+	if (constraint === "reflect") {
+		particle.velocity[axis] = -particle.velocity[axis]
+	} else if (constraint === "wrap") {
+		particle.position[axis] = wrapTarget
+	} else if (constraint === "absorb") {
+		toRemove.push(particle)
+	}
+	//ignore rest
+}
+
+function emitParticle(side, config) { //spawn normal to emittor
+	const size = config.size || 10
+	const mass = config.mass || 1
+	const speed = config.velocity === undefined ? 5 : config.velocity
+	let position, velocity
+	if (side === "left") {
+		position = new Vector(0, Math.random() * height)
+		velocity = new Vector(speed, 0)
+	} else if (side === "right") {
+		position = new Vector(width, Math.random() * height)
+		velocity = new Vector(-speed, 0)
+	} else if (side === "top") {
+		position = new Vector(Math.random() * width, 0)
+		velocity = new Vector(0, speed)
+	} else {
+		position = new Vector(Math.random() * width, height)
+		velocity = new Vector(0, -speed)
+	}
+	return new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0])
+}
+
+
+function handleEmitters(colliders) { //rmit per frame
+	if (!thisWorld) return
+	const fps = thisWorld.frameRate || 30
+		;["left", "right", "top", "bottom"].forEach((side) => {
+			const constraint = getConstraintFor(side)
+			if (!constraint || typeof constraint !== "object") return
+			if (constraint.emitted === undefined) constraint.emitted = 0
+			if (constraint.accum === undefined) constraint.accum = 0
+			const capacity = constraint.capacity === undefined ? Infinity : constraint.capacity
+			const rate = constraint.rate || 0
+			if (rate <= 0 || constraint.emitted >= capacity) return
+			constraint.accum += rate / fps
+			while (constraint.accum >= 1 && constraint.emitted < capacity) {
+				constraint.accum -= 1
+				constraint.emitted += 1
+				colliders.push(emitParticle(side, constraint))
+			}
+		})
+}
+
+function refillEmitter(axisValue) {
+	if (!axisValue || typeof axisValue !== "object") return
+		;["left", "right", "top", "bottom"].forEach((side) => {
+			if (axisValue[side] && typeof axisValue[side] === "object") {
+				axisValue[side].emitted = 0
+				axisValue[side].accum = 0
+			}
+		}) 
+	if (axisValue.rate !== undefined || axisValue.capacity !== undefined || axisValue.velocity !== undefined || axisValue.size !== undefined) {
+		axisValue.emitted = 0
+		axisValue.accum = 0
+	}
+}
+
+
+
+
+
+//// svg handling
 
 function getActiveShapeElement() {
 	const imported = document.getElementById("imported-svg-container")
@@ -611,6 +744,83 @@ function renderPath() {
 	}
 	if (points.length > 2) {
 		addShapeWall(points[points.length - 1], points[0])
+	}
+}
+
+function isInlineSvgMarkup(str) {
+	return typeof str === "string" && /^\s*<\s*(\?xml|svg)/i.test(str)
+}
+
+
+
+function applySvgMarkup(svgText) {
+	const container = document.getElementById("imported-svg-container")
+	if (!container) return false
+	const parser = new DOMParser()
+	const sanitized = String(svgText).replace(/<(\s+)(\/?)(\s*)([a-zA-Z])/g, "<$2$4")
+	const doc = parser.parseFromString(sanitized, "image/svg+xml")
+	const svgEl = doc.querySelector("svg")
+	if (!svgEl || doc.querySelector("parsererror")) return false
+	container.innerHTML = ""
+	container.appendChild(svgEl)
+	return true
+}
+
+function loadWorldSvgShape(world) {
+	
+	const config = ((shape) => {
+		if (!shape) return null
+		if (typeof shape === "string") return { svgPath: shape }
+		if (typeof shape === "object" && shape.svgPath) return shape
+		return null
+	})(world && world.svgPath)
+	if (!config) return Promise.resolve()
+
+	const reveal = () => {
+		if (config.x !== undefined) pathoffset.transform.x = config.x
+		if (config.y !== undefined) pathoffset.transform.y = config.y
+		if (config.theta !== undefined) pathoffset.theta = config.theta
+		if (config.scale !== undefined) pathScale = config.scale
+		if (config.density !== undefined) pathdensity = config.density
+		if (config.anchor !== undefined) pathAnchor = config.anchor
+
+		importedSvgName = ((path)=> {
+			if (isInlineSvgMarkup(path)) return "Generator SVG"
+			const parts = String(path).split("/")
+			return parts[parts.length - 1] || String(path)
+		})(config.svgPath)
+
+		const label = document.getElementById("svg-import-label")
+		if (label) label.textContent = importedSvgName
+		const clearBtn = document.getElementById("svg-clear-btn")
+		if (clearBtn) clearBtn.style.display = "inline-flex"
+		const section = document.getElementById("shape-section")
+		if (section) section.classList.add("visible")
+		if (typeof syncShapeSliders === "function") syncShapeSliders()
+	}
+
+	const fail = (reason) => {
+		if (typeof showError === "function") showError("Couldn't load this world's SVG shape: " + reason)
+		else console.warn("Couldn't load world SVG shape:", reason)
+	}
+
+	try {
+		if (isInlineSvgMarkup(config.svgPath)) {
+			if (applySvgMarkup(config.svgPath)) reveal()
+			else fail("the SVG markup couldn't be parsed")
+			return Promise.resolve()
+		}
+
+		return fetch(config.svgPath)
+			.then((res) => res.text())
+			.then((text) => {
+				if (applySvgMarkup(text)) reveal()
+				else fail("the fetched file wasn't valid SVG")
+			})
+			.catch((err) => fail(err && err.message ? err.message : "the file couldn't be fetched"))
+	} catch (err) {
+		fail(err && err.message ? err.message : String(err))
+		return Promise.resolve()
 	}
 }
 
