@@ -295,7 +295,43 @@ class Particle {
 
 	}
 }
+class Grid {
+	constructor(cellsize) {
+		this.cellsize = cellsize
+		this.map = new Map()
+	}
+	clear() {
+		this.map.clear()
+	}
+	getKey(x, y) {
+		const cx = Math.floor(x / this.cellsize)
+		const cy = Math.floor(y / this.cellsize)
+		return `${cx},${cy}`
+	}
+	insert(particle) {
+		const key = this.getKey(particle.position.x, particle.position.y)
+		if (!this.map.has(key)) {
+			this.map.set(key, [])
+		}
+		this.map.get(key).push(particle)
+	}
+	getNearby(particle) {
+		const cx = Math.floor(particle.position.x / this.cellsize)
+		const cy = Math.floor(particle.position.y / this.cellsize)
+		const neighbors = []
+		for (let x = -1; x <= 1; x++) {
+			for (let y = -1; y <= 1; y++) {
+				const key = `${cx + x},${cy + y}`
+				if (this.map.has(key)) {
+					neighbors.push(...this.map.get(key))
+				}
+			}
+		}
+		return neighbors;
+	}
+}
 
+// Initialize a global grid with a cell size of 80 pixels
 
 let thisWorld = null
 let collisions = 0
@@ -310,6 +346,9 @@ let pathScale = 1
 let pathoffset = { transform: new Vector(window.innerWidth / 2, window.innerHeight / 2), theta: 0 }
 let shapeWalls = []
 let shapeCornerParticles = []
+let cellsize = 0
+let buffer = 1.6 // cellsize is 1.6 times the largest particle diameter
+let worldGrid = new Grid(100) // will be updated in initParticles
 // let emit = thisWorld.constrainX 
 
 function totalEnergy() {
@@ -363,9 +402,21 @@ function triangulate(colliders, contraints) {
 		}
 		toRemove.length = 0
 	}
+	worldGrid.clear();
 	for (let i = 0; i < colliders.length; i++) {
-		for (let j = i + 1; j < colliders.length; j++) {
-			colliders[i].collide(colliders[j]);
+		worldGrid.insert(colliders[i])
+	}
+
+	for (let i = 0; i < colliders.length; i++) {
+		const p1 = colliders[i];
+		const nearby = worldGrid.getNearby(p1);
+		for (let j = 0; j < nearby.length; j++) {
+			const p2 = nearby[j];
+			// Ensure each pair is only checked once and doesnt check against itself
+			if (p1 === p2) continue;
+			if (colliders.indexOf(p1) < colliders.indexOf(p2)) { // can compare array indices or use a lightweight identifier,  but checking id/reference ensures safety. Heres standard index check:
+				p1.collide(p2);
+			}
 		}
 	}
 	for (let i = 0; i < colliders.length; i++) {
@@ -405,10 +456,15 @@ function initWalls() {
 
 function initParticles() {
 	particles = []
-	for (let k = 0; k < thisWorld.particleCount; k++) {
-		let [size, position, velocity, mass] = thisWorld.particleGenerator(k)
-		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]))
+	let maxsize = getMaxParticleSize(thisWorld)
+	let count = thisWorld.particleCount || 0;
+	for (let k = 0; k < count; k++) {
+		let [size, position, velocity, mass] = thisWorld.particleGenerator(k);
+		particles.push(new Particle(size, position, velocity, mass, false, thisWorld.trailLength ? [position, position, thisWorld.trailLength] : [null, null, 0]));
 	}
+
+	cellsize = maxsize * buffer;
+	worldGrid.cellsize = cellsize;
 	// particles.push(new Particle(30, new Vector(80, 120), new Vector(10, 10), 10))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), 3))
 	// particles.push(new Particle(30, new Vector(13, 10), new Vector(10, 10), -12))
@@ -443,6 +499,37 @@ function populateIntersections(newWall) {
 	}
 }
 
+function getMaxParticleSize(world) {
+	if (!world) return 10;
+	let maxSize = 0;
+	// check static particle first if it exists
+	if (typeof world.particleGenerator === "function" && world.particleCount > 0) {
+		for (let k = 0; k < world.particleCount; k++) {
+			let [size] = world.particleGenerator(k);
+			if (size > maxSize) maxSize = size;
+		}
+	}
+
+	// then check dynamic emitters in constrainX and constrainY configurations
+	const checkEmitterConfig = (config) => {
+		if (!config || typeof config !== "object") return;
+		if (config.size !== undefined && config.size > maxSize) {
+			maxSize = config.size;
+		}
+		["left", "right", "top", "bottom"].forEach(side => {
+			if (config[side] && typeof config[side] === "object" && config[side].size !== undefined) {
+				if (config[side].size > maxSize) {
+					maxSize = config[side].size;
+				}
+			}
+		});
+	};
+
+	checkEmitterConfig(world.constrainX);
+	checkEmitterConfig(world.constrainY);
+
+	return maxSize > 0 ? maxSize : 10;
+}
 
 function setup() {
 	let cnv = createCanvas(window.innerWidth, window.innerHeight)
@@ -480,7 +567,7 @@ function startSimulation(world) {
 	worldLoading = true
 	Promise.resolve()
 		.then(() => loadWorldSvgShape(world))
-		.catch((e) => { console.warn("svg load failed:", e) }) 
+		.catch((e) => { console.warn("svg load failed:", e) })
 		.then(() => {
 			console.log("World loaded:", world)
 			if (thisWorld !== world) return // a diff world was selected before loading
@@ -640,7 +727,7 @@ function refillEmitter(axisValue) {
 				axisValue[side].emitted = 0
 				axisValue[side].accum = 0
 			}
-		}) 
+		})
 	if (axisValue.rate !== undefined || axisValue.capacity !== undefined || axisValue.velocity !== undefined || axisValue.size !== undefined) {
 		axisValue.emitted = 0
 		axisValue.accum = 0
@@ -767,7 +854,7 @@ function applySvgMarkup(svgText) {
 }
 
 function loadWorldSvgShape(world) {
-	
+
 	const config = ((shape) => {
 		if (!shape) return null
 		if (typeof shape === "string") return { svgPath: shape }
@@ -784,7 +871,7 @@ function loadWorldSvgShape(world) {
 		if (config.density !== undefined) pathdensity = config.density
 		if (config.anchor !== undefined) pathAnchor = config.anchor
 
-		importedSvgName = ((path)=> {
+		importedSvgName = ((path) => {
 			if (isInlineSvgMarkup(path)) return "Generator SVG"
 			const parts = String(path).split("/")
 			return parts[parts.length - 1] || String(path)
